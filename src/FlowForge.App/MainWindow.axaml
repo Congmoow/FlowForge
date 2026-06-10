@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:FlowForge.App.Controls"
         xmlns:vm="using:FlowForge.App.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -60,14 +61,7 @@
                            FontWeight="SemiBold"
                            Foreground="#243044"
                            Margin="0,0,0,12" />
-                <Border Background="#F0F3F7"
-                        BorderBrush="#CBD5E1"
-                        BorderThickness="1">
-                    <TextBlock Text="画布将在下一项渲染静态节点。"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Foreground="#667085" />
-                </Border>
+                <controls:NodeCanvas MinHeight="360" />
             </DockPanel>
         </Border>
 
