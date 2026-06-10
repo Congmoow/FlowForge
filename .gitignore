@@ -1,0 +1,36 @@
+# Build outputs
+bin/
+obj/
+out/
+artifacts/
+TestResults/
+coverage/
+*.trx
+*.coverage
+*.coveragexml
+*.xml
+
+# IDE and editor state
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local secrets and runtime data
+appsettings.Development.json
+*.local.json
+*.log
+logs/
+
+# Publish outputs
+publish/
+*.nupkg
+*.snupkg
