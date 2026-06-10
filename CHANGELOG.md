@@ -9,4 +9,4 @@
 ### Added
 
 - 初始化 FlowForge 仓库骨架、解决方案结构与测试项目。
-
+- 完成 Stage 1 骨架：Avalonia 应用壳、DI 与 ReactiveUI 集成、三栏主窗口、静态自绘画布节点、CI、Roslyn 分析和 ADR-0001/0002。
