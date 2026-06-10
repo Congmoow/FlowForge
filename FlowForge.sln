@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7434AC3D-D131-4BAA-AE27-6E4608693E1F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlowForge.Core", "src\FlowForge.Core\FlowForge.Core.csproj", "{C4CEE2B7-A783-4B83-B629-D1177301A7BC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{3644B4EF-1E0E-47D6-876F-5B8DC9BF31C7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlowForge.Core.Tests", "tests\FlowForge.Core.Tests\FlowForge.Core.Tests.csproj", "{29674863-C1A1-4BCF-8BFA-4ED55F5D85D5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlowForge.App.Tests", "tests\FlowForge.App.Tests\FlowForge.App.Tests.csproj", "{BEDCF3D8-9737-4172-8B04-DC5FA1D1829D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlowForge.Integration.Tests", "tests\FlowForge.Integration.Tests\FlowForge.Integration.Tests.csproj", "{78E88D7B-DFAF-4F94-A681-45213AA4CAE5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C4CEE2B7-A783-4B83-B629-D1177301A7BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C4CEE2B7-A783-4B83-B629-D1177301A7BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C4CEE2B7-A783-4B83-B629-D1177301A7BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C4CEE2B7-A783-4B83-B629-D1177301A7BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{29674863-C1A1-4BCF-8BFA-4ED55F5D85D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{29674863-C1A1-4BCF-8BFA-4ED55F5D85D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{29674863-C1A1-4BCF-8BFA-4ED55F5D85D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{29674863-C1A1-4BCF-8BFA-4ED55F5D85D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BEDCF3D8-9737-4172-8B04-DC5FA1D1829D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BEDCF3D8-9737-4172-8B04-DC5FA1D1829D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BEDCF3D8-9737-4172-8B04-DC5FA1D1829D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BEDCF3D8-9737-4172-8B04-DC5FA1D1829D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78E88D7B-DFAF-4F94-A681-45213AA4CAE5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78E88D7B-DFAF-4F94-A681-45213AA4CAE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78E88D7B-DFAF-4F94-A681-45213AA4CAE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78E88D7B-DFAF-4F94-A681-45213AA4CAE5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C4CEE2B7-A783-4B83-B629-D1177301A7BC} = {7434AC3D-D131-4BAA-AE27-6E4608693E1F}
+		{29674863-C1A1-4BCF-8BFA-4ED55F5D85D5} = {3644B4EF-1E0E-47D6-876F-5B8DC9BF31C7}
+		{BEDCF3D8-9737-4172-8B04-DC5FA1D1829D} = {3644B4EF-1E0E-47D6-876F-5B8DC9BF31C7}
+		{78E88D7B-DFAF-4F94-A681-45213AA4CAE5} = {3644B4EF-1E0E-47D6-876F-5B8DC9BF31C7}
+	EndGlobalSection
+EndGlobal
