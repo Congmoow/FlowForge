@@ -8,6 +8,7 @@ coverage/
 *.trx
 *.coverage
 *.coveragexml
+*.xml
 
 # IDE and editor state
 .vs/
@@ -33,4 +34,3 @@ logs/
 publish/
 *.nupkg
 *.snupkg
-
