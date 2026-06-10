@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "stage/**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: 还原依赖
+        run: dotnet restore FlowForge.sln
+
+      - name: 构建
+        run: dotnet build FlowForge.sln --configuration Release --no-restore
+
+      - name: 测试
+        run: dotnet test FlowForge.sln --configuration Release --no-build
