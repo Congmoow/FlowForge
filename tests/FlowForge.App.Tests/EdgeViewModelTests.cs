@@ -71,4 +71,17 @@ public sealed class EdgeViewModelTests
         changedProperties.Should().Contain(nameof(EdgeViewModel.DraftEndPoint));
         changedProperties.Should().Contain(nameof(EdgeViewModel.EndPoint));
     }
+
+    [Fact]
+    public void Constructor_IncompatiblePorts_ThrowsArgumentException()
+    {
+        var sourceNode = new NodeViewModel(Guid.NewGuid(), "core.datasource.text", "文本读取", 100, 200);
+        var targetNode = new NodeViewModel(Guid.NewGuid(), "core.transform.json-parse", "JSON 解析", 400, 200);
+        var sourcePort = new PortViewModel(sourceNode, "content", "内容", PortDirection.Output, typeof(string), 0);
+        var targetPort = new PortViewModel(targetNode, "json", "JSON", PortDirection.Input, typeof(int), 0);
+
+        var act = () => new EdgeViewModel(Guid.NewGuid(), sourcePort, targetPort);
+
+        act.Should().Throw<ArgumentException>().WithMessage("源端口和目标端口不兼容。*");
+    }
 }

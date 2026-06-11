@@ -71,4 +71,15 @@ public sealed class PortViewModelTests
 
         output.CanConnectTo(input).Should().BeFalse();
     }
+
+    [Fact]
+    public void CanConnectTo_InputToOutput_ReturnsFalse()
+    {
+        var source = new NodeViewModel(Guid.NewGuid(), "core.sink.console", "控制台输出", 0, 0);
+        var target = new NodeViewModel(Guid.NewGuid(), "core.datasource.text", "文本读取", 300, 0);
+        var input = new PortViewModel(source, "value", "值", PortDirection.Input, typeof(object), 0);
+        var output = new PortViewModel(target, "content", "内容", PortDirection.Output, typeof(string), 0);
+
+        input.CanConnectTo(output).Should().BeFalse();
+    }
 }
