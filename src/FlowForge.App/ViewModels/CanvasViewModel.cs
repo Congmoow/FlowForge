@@ -197,7 +197,7 @@ public sealed class CanvasViewModel : ReactiveObject
 
     private void CompleteEdgeDrag(PortViewModel target)
     {
-        if (DraftEdge is null || !DraftEdge.Source.CanConnectTo(target))
+        if (DraftEdge is null || !DraftEdge.Source.CanConnectTo(target) || HasIncomingEdge(target))
         {
             ClearDraftEdge();
             return;
@@ -232,6 +232,11 @@ public sealed class CanvasViewModel : ReactiveObject
         DraftEdge = null;
         PreviewTargetPort = null;
         ConnectionPreviewState = ConnectionPreviewState.None;
+    }
+
+    private bool HasIncomingEdge(PortViewModel target)
+    {
+        return Edges.Any(edge => edge.Target == target);
     }
 }
 

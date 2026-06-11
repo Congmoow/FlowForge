@@ -136,15 +136,16 @@ public sealed class NodeCanvas : Control
         }
 
         var position = e.GetPosition(this);
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && Toolbox is { } toolbox)
+        var port = FindPortAt(canvas, position);
+        var node = FindNodeAt(canvas, position);
+        if (ShouldUseAddNodeShortcut(e.KeyModifiers, node is not null, port is not null, Toolbox is not null))
         {
-            canvas.AddNodeFromTemplateCommand.Execute(new AddNodeFromTemplateRequest(toolbox.SelectedTemplate, position));
+            canvas.AddNodeFromTemplateCommand.Execute(new AddNodeFromTemplateRequest(Toolbox!.SelectedTemplate, position));
             InvalidateVisual();
             e.Handled = true;
             return;
         }
 
-        var port = FindPortAt(canvas, position);
         if (port is { Direction: PortDirection.Output })
         {
             isDraggingEdge = true;
@@ -155,7 +156,6 @@ public sealed class NodeCanvas : Control
             return;
         }
 
-        var node = FindNodeAt(canvas, position);
         if (node is null)
         {
             canvas.ClearSelectionCommand.Execute(null);
@@ -369,6 +369,22 @@ public sealed class NodeCanvas : Control
         return modifiers.HasFlag(KeyModifiers.Shift)
             ? SelectionGesture.Add
             : SelectionGesture.Replace;
+    }
+
+    /// <summary>
+    /// 判断当前点击是否应该使用从节点库快速添加节点的快捷入口。
+    /// </summary>
+    /// <param name="modifiers">当前键盘修饰键。</param>
+    /// <param name="hasHitNode">是否命中了已有节点。</param>
+    /// <param name="hasHitPort">是否命中了已有端口。</param>
+    /// <param name="hasToolbox">是否绑定了节点库。</param>
+    /// <returns>如果应在当前位置添加节点则返回 true。</returns>
+    public static bool ShouldUseAddNodeShortcut(KeyModifiers modifiers, bool hasHitNode, bool hasHitPort, bool hasToolbox)
+    {
+        return hasToolbox
+            && modifiers.HasFlag(KeyModifiers.Control)
+            && !hasHitNode
+            && !hasHitPort;
     }
 
     private void StopDragging(IPointer pointer)

@@ -1,6 +1,7 @@
 using FlowForge.App.Controls;
 using FlowForge.App.ViewModels;
 using FluentAssertions;
+using Avalonia.Input;
 
 namespace FlowForge.App.Tests;
 
@@ -31,5 +32,29 @@ public sealed class NodeCanvasTests
 
         canvas.Canvas.Should().BeSameAs(canvasViewModel);
         canvas.Toolbox.Should().BeSameAs(toolboxViewModel);
+    }
+
+    [Fact]
+    public void ShouldUseAddNodeShortcut_CtrlClickOnNode_ReturnsFalse()
+    {
+        var shouldAddNode = NodeCanvas.ShouldUseAddNodeShortcut(
+            KeyModifiers.Control,
+            hasHitNode: true,
+            hasHitPort: false,
+            hasToolbox: true);
+
+        shouldAddNode.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ShouldUseAddNodeShortcut_CtrlClickOnEmptyCanvas_ReturnsTrue()
+    {
+        var shouldAddNode = NodeCanvas.ShouldUseAddNodeShortcut(
+            KeyModifiers.Control,
+            hasHitNode: false,
+            hasHitPort: false,
+            hasToolbox: true);
+
+        shouldAddNode.Should().BeTrue();
     }
 }

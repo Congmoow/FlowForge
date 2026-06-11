@@ -223,6 +223,28 @@ public sealed class CanvasViewModelTests
     }
 
     [Fact]
+    public void CompleteEdgeDragCommand_InputAlreadyConnected_DoesNotAddSecondEdge()
+    {
+        var firstSourceNode = new NodeViewModel(Guid.NewGuid(), "core.datasource.text", "文本读取", 100, 200);
+        var secondSourceNode = new NodeViewModel(Guid.NewGuid(), "core.datasource.csv", "CSV 读取", 100, 360);
+        var targetNode = new NodeViewModel(Guid.NewGuid(), "core.sink.console", "控制台输出", 400, 200);
+        var firstSourcePort = new PortViewModel(firstSourceNode, "content", "内容", PortDirection.Output, typeof(string), 0);
+        var secondSourcePort = new PortViewModel(secondSourceNode, "rows", "rows", PortDirection.Output, typeof(object), 0);
+        var targetPort = new PortViewModel(targetNode, "value", "值", PortDirection.Input, typeof(object), 0);
+        var viewModel = new CanvasViewModel();
+        viewModel.BeginEdgeDragCommand.Execute(new BeginEdgeDragRequest(firstSourcePort, new Point(480, 260)));
+        viewModel.CompleteEdgeDragCommand.Execute(targetPort);
+
+        viewModel.BeginEdgeDragCommand.Execute(new BeginEdgeDragRequest(secondSourcePort, new Point(480, 360)));
+        viewModel.CompleteEdgeDragCommand.Execute(targetPort);
+
+        viewModel.DraftEdge.Should().BeNull();
+        viewModel.Edges.Should().ContainSingle();
+        viewModel.Edges[0].Source.Should().BeSameAs(firstSourcePort);
+        viewModel.Edges[0].Target.Should().BeSameAs(targetPort);
+    }
+
+    [Fact]
     public void CompleteEdgeDragCommand_IncompatibleInput_DoesNotAddEdgeAndClearsDraft()
     {
         var sourceNode = new NodeViewModel(Guid.NewGuid(), "core.datasource.text", "文本读取", 100, 200);
