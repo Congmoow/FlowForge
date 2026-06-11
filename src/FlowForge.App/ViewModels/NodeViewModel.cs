@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Avalonia;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
@@ -42,6 +43,16 @@ public sealed class NodeViewModel : ReactiveObject
     /// 节点显示标题。
     /// </summary>
     public string Title { get; }
+
+    /// <summary>
+    /// 节点输入端口集合。
+    /// </summary>
+    public ObservableCollection<PortViewModel> Inputs { get; } = [];
+
+    /// <summary>
+    /// 节点输出端口集合。
+    /// </summary>
+    public ObservableCollection<PortViewModel> Outputs { get; } = [];
 
     /// <summary>
     /// 节点左上角坐标。

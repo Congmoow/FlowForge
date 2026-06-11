@@ -13,7 +13,9 @@ public sealed class MainWindowViewModel : ReactiveObject
     public MainWindowViewModel()
     {
         Canvas = new CanvasViewModel();
-        Canvas.Nodes.Add(new NodeViewModel(Guid.Parse("11111111-1111-1111-1111-111111111111"), "core.datasource.csv", "CSV 读取", 96, 80));
+        var csvNode = new NodeViewModel(Guid.Parse("11111111-1111-1111-1111-111111111111"), "core.datasource.csv", "CSV 读取", 96, 80);
+        csvNode.Outputs.Add(new PortViewModel(csvNode, "rows", "rows", PortDirection.Output, typeof(object), 0));
+        Canvas.Nodes.Add(csvNode);
     }
 
     /// <summary>

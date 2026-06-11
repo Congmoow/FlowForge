@@ -14,11 +14,14 @@ public sealed class NodeCanvas : Control
     private const double NodeWidth = 220;
     private const double NodeHeight = 96;
     private const double NodeHeaderHeight = 32;
+    private const double PortRadius = 5;
 
     private static readonly IBrush CanvasBackground = new SolidColorBrush(Color.Parse("#F8FAFC"));
     private static readonly Pen GridPen = new(new SolidColorBrush(Color.Parse("#E2E8F0")), 1);
     private static readonly IBrush NodeFill = new SolidColorBrush(Color.Parse("#FFFFFF"));
     private static readonly Pen NodeStroke = new(new SolidColorBrush(Color.Parse("#2563EB")), 1.5);
+    private static readonly IBrush PortFill = new SolidColorBrush(Color.Parse("#2563EB"));
+    private static readonly Pen PortStroke = new(new SolidColorBrush(Color.Parse("#FFFFFF")), 1.5);
     private static readonly IBrush HeaderFill = new SolidColorBrush(Color.Parse("#EFF6FF"));
     private static readonly IBrush TextFill = new SolidColorBrush(Color.Parse("#1E293B"));
 
@@ -143,6 +146,7 @@ public sealed class NodeCanvas : Control
     {
         var bounds = new Rect(node.Position, new Size(NodeWidth, NodeHeight));
         DrawNode(context, bounds, node.Title, node.TypeId);
+        DrawPorts(context, node);
     }
 
     private static void DrawNode(DrawingContext context, Rect node, string titleText, string bodyText)
@@ -172,6 +176,14 @@ public sealed class NodeCanvas : Control
             TextFill);
 
         context.DrawText(body, new Point(node.X + 16, node.Y + 52));
+    }
+
+    private static void DrawPorts(DrawingContext context, NodeViewModel node)
+    {
+        foreach (var port in node.Inputs.Concat(node.Outputs))
+        {
+            context.DrawEllipse(PortFill, PortStroke, port.AnchorPoint, PortRadius, PortRadius);
+        }
     }
 
     private static NodeViewModel? FindNodeAt(CanvasViewModel canvas, Point position)
