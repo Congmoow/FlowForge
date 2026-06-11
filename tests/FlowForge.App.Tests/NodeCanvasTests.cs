@@ -57,4 +57,20 @@ public sealed class NodeCanvasTests
 
         shouldAddNode.Should().BeTrue();
     }
+
+    [Fact]
+    public void ResolveSelectionGesture_PressSelectedNodeWithoutModifiers_PreservesCurrentSelection()
+    {
+        var gesture = NodeCanvas.ResolveSelectionGesture(KeyModifiers.None, isNodeAlreadySelected: true);
+
+        gesture.Should().Be(SelectionGesture.Add);
+    }
+
+    [Fact]
+    public void ResolveSelectionGesture_PressUnselectedNodeWithoutModifiers_ReplacesCurrentSelection()
+    {
+        var gesture = NodeCanvas.ResolveSelectionGesture(KeyModifiers.None, isNodeAlreadySelected: false);
+
+        gesture.Should().Be(SelectionGesture.Replace);
+    }
 }

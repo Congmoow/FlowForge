@@ -164,7 +164,7 @@ public sealed class NodeCanvas : Control
             return;
         }
 
-        canvas.SelectNodeCommand.Execute(new SelectNodeRequest(node.Id, GetSelectionGesture(e.KeyModifiers)));
+        canvas.SelectNodeCommand.Execute(new SelectNodeRequest(node.Id, ResolveSelectionGesture(e.KeyModifiers, node.IsSelected)));
         draggingNodeId = node.Id;
         isDraggingSelection = node.IsSelected && canvas.Nodes.Count(candidate => candidate.IsSelected) > 1;
         lastPointerPosition = position;
@@ -359,16 +359,25 @@ public sealed class NodeCanvas : Control
         return Math.Sqrt(delta.X * delta.X + delta.Y * delta.Y);
     }
 
-    private static SelectionGesture GetSelectionGesture(KeyModifiers modifiers)
+    /// <summary>
+    /// 根据修饰键和节点当前选择状态解析选择手势。
+    /// </summary>
+    /// <param name="modifiers">当前键盘修饰键。</param>
+    /// <param name="isNodeAlreadySelected">节点按下前是否已经选中。</param>
+    /// <returns>应发送给画布 ViewModel 的选择手势。</returns>
+    public static SelectionGesture ResolveSelectionGesture(KeyModifiers modifiers, bool isNodeAlreadySelected)
     {
         if (modifiers.HasFlag(KeyModifiers.Control))
         {
             return SelectionGesture.Toggle;
         }
 
-        return modifiers.HasFlag(KeyModifiers.Shift)
-            ? SelectionGesture.Add
-            : SelectionGesture.Replace;
+        if (modifiers.HasFlag(KeyModifiers.Shift) || isNodeAlreadySelected)
+        {
+            return SelectionGesture.Add;
+        }
+
+        return SelectionGesture.Replace;
     }
 
     /// <summary>
