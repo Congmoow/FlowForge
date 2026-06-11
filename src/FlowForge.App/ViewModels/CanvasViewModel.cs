@@ -24,6 +24,11 @@ public sealed class CanvasViewModel : ReactiveObject
     public ObservableCollection<NodeViewModel> Nodes { get; } = [];
 
     /// <summary>
+    /// 当前画布上的连线集合。
+    /// </summary>
+    public ObservableCollection<EdgeViewModel> Edges { get; } = [];
+
+    /// <summary>
     /// 按位移移动节点的命令。
     /// </summary>
     public ICommand MoveNodeCommand { get; }
