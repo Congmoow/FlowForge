@@ -61,7 +61,8 @@
                            FontWeight="SemiBold"
                            Foreground="#243044"
                            Margin="0,0,0,12" />
-                <controls:NodeCanvas MinHeight="360" />
+                <controls:NodeCanvas MinHeight="360"
+                                     DataContext="{Binding Canvas}" />
             </DockPanel>
         </Border>
 

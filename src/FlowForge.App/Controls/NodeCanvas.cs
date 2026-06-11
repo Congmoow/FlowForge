@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
+using FlowForge.App.ViewModels;
 
 namespace FlowForge.App.Controls;
 
@@ -9,6 +11,10 @@ namespace FlowForge.App.Controls;
 /// </summary>
 public sealed class NodeCanvas : Control
 {
+    private const double NodeWidth = 220;
+    private const double NodeHeight = 96;
+    private const double NodeHeaderHeight = 32;
+
     private static readonly IBrush CanvasBackground = new SolidColorBrush(Color.Parse("#F8FAFC"));
     private static readonly Pen GridPen = new(new SolidColorBrush(Color.Parse("#E2E8F0")), 1);
     private static readonly IBrush NodeFill = new SolidColorBrush(Color.Parse("#FFFFFF"));
@@ -21,6 +27,9 @@ public sealed class NodeCanvas : Control
     /// </summary>
     public static Rect PlaceholderNode { get; } = new(96, 80, 220, 96);
 
+    private Guid? draggingNodeId;
+    private Point lastPointerPosition;
+
     /// <inheritdoc />
     public override void Render(DrawingContext context)
     {
@@ -29,7 +38,85 @@ public sealed class NodeCanvas : Control
         var bounds = new Rect(Bounds.Size);
         context.FillRectangle(CanvasBackground, bounds);
         DrawGrid(context, bounds);
+
+        if (DataContext is CanvasViewModel canvas && canvas.Nodes.Count > 0)
+        {
+            foreach (var node in canvas.Nodes)
+            {
+                DrawNode(context, node);
+            }
+
+            return;
+        }
+
         DrawPlaceholderNode(context);
+    }
+
+    /// <inheritdoc />
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+
+        if (DataContext is not CanvasViewModel canvas)
+        {
+            return;
+        }
+
+        var point = e.GetCurrentPoint(this);
+        if (!point.Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        var position = e.GetPosition(this);
+        var node = FindNodeAt(canvas, position);
+        if (node is null)
+        {
+            return;
+        }
+
+        draggingNodeId = node.Id;
+        lastPointerPosition = position;
+        e.Pointer.Capture(this);
+        e.Handled = true;
+    }
+
+    /// <inheritdoc />
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+
+        if (draggingNodeId is not { } nodeId || DataContext is not CanvasViewModel canvas)
+        {
+            return;
+        }
+
+        var point = e.GetCurrentPoint(this);
+        if (!point.Properties.IsLeftButtonPressed)
+        {
+            StopDragging(e.Pointer);
+            return;
+        }
+
+        var currentPosition = e.GetPosition(this);
+        var delta = currentPosition - lastPointerPosition;
+        if (delta == default)
+        {
+            return;
+        }
+
+        canvas.MoveNodeCommand.Execute(new MoveNodeRequest(nodeId, delta));
+        lastPointerPosition = currentPosition;
+        InvalidateVisual();
+        e.Handled = true;
+    }
+
+    /// <inheritdoc />
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        StopDragging(e.Pointer);
+        e.Handled = true;
     }
 
     private static void DrawGrid(DrawingContext context, Rect bounds)
@@ -49,15 +136,25 @@ public sealed class NodeCanvas : Control
 
     private static void DrawPlaceholderNode(DrawingContext context)
     {
-        var node = PlaceholderNode;
-        var header = new Rect(node.X, node.Y, node.Width, 32);
+        DrawNode(context, PlaceholderNode, "CSV 读取", "静态占位节点");
+    }
+
+    private static void DrawNode(DrawingContext context, NodeViewModel node)
+    {
+        var bounds = new Rect(node.Position, new Size(NodeWidth, NodeHeight));
+        DrawNode(context, bounds, node.Title, node.TypeId);
+    }
+
+    private static void DrawNode(DrawingContext context, Rect node, string titleText, string bodyText)
+    {
+        var header = new Rect(node.X, node.Y, node.Width, NodeHeaderHeight);
 
         context.FillRectangle(NodeFill, node, 8);
         context.DrawRectangle(NodeStroke, node, 8);
         context.FillRectangle(HeaderFill, header, 8);
 
         var title = new FormattedText(
-            "CSV 读取",
+            titleText,
             System.Globalization.CultureInfo.CurrentCulture,
             FlowDirection.LeftToRight,
             Typeface.Default,
@@ -67,7 +164,7 @@ public sealed class NodeCanvas : Control
         context.DrawText(title, new Point(node.X + 16, node.Y + 9));
 
         var body = new FormattedText(
-            "静态占位节点",
+            bodyText,
             System.Globalization.CultureInfo.CurrentCulture,
             FlowDirection.LeftToRight,
             Typeface.Default,
@@ -75,5 +172,30 @@ public sealed class NodeCanvas : Control
             TextFill);
 
         context.DrawText(body, new Point(node.X + 16, node.Y + 52));
+    }
+
+    private static NodeViewModel? FindNodeAt(CanvasViewModel canvas, Point position)
+    {
+        foreach (var node in canvas.Nodes.Reverse())
+        {
+            var bounds = new Rect(node.Position, new Size(NodeWidth, NodeHeight));
+            if (bounds.Contains(position))
+            {
+                return node;
+            }
+        }
+
+        return null;
+    }
+
+    private void StopDragging(IPointer pointer)
+    {
+        if (draggingNodeId is null)
+        {
+            return;
+        }
+
+        draggingNodeId = null;
+        pointer.Capture(null);
     }
 }
