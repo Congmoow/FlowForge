@@ -41,9 +41,31 @@
                            FontWeight="SemiBold"
                            Foreground="#243044"
                            Margin="0,0,0,12" />
-                <TextBlock Text="内置节点会在后续阶段加入。"
-                           TextWrapping="Wrap"
-                           Foreground="#667085" />
+                <controls:ToolboxListBox ItemsSource="{Binding Toolbox.Templates}"
+                                         SelectedItem="{Binding Toolbox.SelectedTemplate}"
+                                         Background="Transparent"
+                                         BorderThickness="0">
+                    <controls:ToolboxListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:NodeTemplateViewModel">
+                            <Border Background="#F8FAFC"
+                                    BorderBrush="#D8DEE8"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Margin="0,0,0,8"
+                                    Padding="10">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="{Binding Title}"
+                                               FontWeight="SemiBold"
+                                               Foreground="#243044" />
+                                    <TextBlock Text="{Binding TypeId}"
+                                               FontSize="11"
+                                               Foreground="#667085"
+                                               TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </controls:ToolboxListBox.ItemTemplate>
+                </controls:ToolboxListBox>
             </DockPanel>
         </Border>
 
@@ -61,7 +83,9 @@
                            FontWeight="SemiBold"
                            Foreground="#243044"
                            Margin="0,0,0,12" />
-                <controls:NodeCanvas MinHeight="360" />
+                <controls:NodeCanvas MinHeight="360"
+                                     Canvas="{Binding Canvas}"
+                                     Toolbox="{Binding Toolbox}" />
             </DockPanel>
         </Border>
 
