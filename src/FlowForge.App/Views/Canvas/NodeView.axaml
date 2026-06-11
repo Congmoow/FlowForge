@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FlowForge.App.ViewModels"
+             x:Class="FlowForge.App.Views.Canvas.NodeView"
+             x:DataType="vm:NodeViewModel"
+             Width="220"
+             Height="96">
+    <Border Background="#FFFFFF"
+            BorderBrush="#2563EB"
+            BorderThickness="1.5"
+            CornerRadius="8">
+        <Grid RowDefinitions="32,*">
+            <Border Grid.Row="0"
+                    Background="#EFF6FF"
+                    CornerRadius="8,8,0,0">
+                <TextBlock Text="{Binding Title}"
+                           Margin="16,0"
+                           VerticalAlignment="Center"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="#1E293B" />
+            </Border>
+
+            <StackPanel Grid.Row="1"
+                        Margin="16,10,16,12"
+                        Spacing="6">
+                <TextBlock Text="{Binding TypeId}"
+                           FontSize="11"
+                           Foreground="#64748B"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="等待连接"
+                           FontSize="12"
+                           Foreground="#475569" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

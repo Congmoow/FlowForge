@@ -1,5 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:canvas="using:FlowForge.App.Views.Canvas"
+             xmlns:vm="using:FlowForge.App.ViewModels"
              x:Class="FlowForge.App.App"
              RequestedThemeVariant="Default">
              <!-- Default 会跟随系统主题，也可改为 Dark 或 Light。 -->
@@ -7,4 +9,10 @@
     <Application.Styles>
         <FluentTheme />
     </Application.Styles>
+
+    <Application.DataTemplates>
+        <DataTemplate DataType="vm:NodeViewModel">
+            <canvas:NodeView />
+        </DataTemplate>
+    </Application.DataTemplates>
 </Application>
