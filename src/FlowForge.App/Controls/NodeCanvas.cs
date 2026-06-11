@@ -36,6 +36,7 @@ public sealed class NodeCanvas : Control
     public static Rect PlaceholderNode { get; } = new(96, 80, 220, 96);
 
     private Guid? draggingNodeId;
+    private bool isDraggingSelection;
     private Point lastPointerPosition;
     private bool isDraggingEdge;
 
@@ -165,6 +166,7 @@ public sealed class NodeCanvas : Control
 
         canvas.SelectNodeCommand.Execute(new SelectNodeRequest(node.Id, GetSelectionGesture(e.KeyModifiers)));
         draggingNodeId = node.Id;
+        isDraggingSelection = node.IsSelected && canvas.Nodes.Count(candidate => candidate.IsSelected) > 1;
         lastPointerPosition = position;
         e.Pointer.Capture(this);
         e.Handled = true;
@@ -204,7 +206,14 @@ public sealed class NodeCanvas : Control
             return;
         }
 
-        canvas.MoveNodeCommand.Execute(new MoveNodeRequest(nodeId, delta));
+        if (isDraggingSelection)
+        {
+            canvas.MoveSelectedNodesCommand.Execute(delta);
+        }
+        else
+        {
+            canvas.MoveNodeCommand.Execute(new MoveNodeRequest(nodeId, delta));
+        }
         lastPointerPosition = currentPosition;
         InvalidateVisual();
         e.Handled = true;
@@ -370,6 +379,7 @@ public sealed class NodeCanvas : Control
         }
 
         draggingNodeId = null;
+        isDraggingSelection = false;
         pointer.Capture(null);
     }
 

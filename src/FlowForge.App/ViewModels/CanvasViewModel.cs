@@ -17,6 +17,7 @@ public sealed class CanvasViewModel : ReactiveObject
     public CanvasViewModel()
     {
         MoveNodeCommand = ReactiveCommand.Create<MoveNodeRequest>(MoveNode);
+        MoveSelectedNodesCommand = ReactiveCommand.Create<Vector>(MoveSelectedNodes);
         SelectNodeCommand = ReactiveCommand.Create<SelectNodeRequest>(SelectNode);
         ClearSelectionCommand = ReactiveCommand.Create(ClearSelection);
         AddNodeFromTemplateCommand = ReactiveCommand.Create<AddNodeFromTemplateRequest>(AddNodeFromTemplate);
@@ -59,6 +60,11 @@ public sealed class CanvasViewModel : ReactiveObject
     /// 按位移移动节点的命令。
     /// </summary>
     public ICommand MoveNodeCommand { get; }
+
+    /// <summary>
+    /// 移动所有已选节点的命令。
+    /// </summary>
+    public ICommand MoveSelectedNodesCommand { get; }
 
     /// <summary>
     /// 选择节点的命令。
@@ -109,6 +115,14 @@ public sealed class CanvasViewModel : ReactiveObject
         }
 
         node.Position += request.Delta;
+    }
+
+    private void MoveSelectedNodes(Vector delta)
+    {
+        foreach (var node in Nodes.Where(candidate => candidate.IsSelected))
+        {
+            node.Position += delta;
+        }
     }
 
     private void SelectNode(SelectNodeRequest request)

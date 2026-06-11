@@ -125,6 +125,30 @@ public sealed class CanvasViewModelTests
     }
 
     [Fact]
+    public void MoveSelectedNodesCommand_SelectedNodes_AddsDeltaToAllSelectedNodes()
+    {
+        var first = new NodeViewModel(Guid.NewGuid(), "core.datasource.csv", "CSV 读取", 10, 20)
+        {
+            IsSelected = true,
+        };
+        var second = new NodeViewModel(Guid.NewGuid(), "core.sink.console", "控制台输出", 300, 20)
+        {
+            IsSelected = true,
+        };
+        var third = new NodeViewModel(Guid.NewGuid(), "core.datasource.text", "文本读取", 500, 20);
+        var viewModel = new CanvasViewModel();
+        viewModel.Nodes.Add(first);
+        viewModel.Nodes.Add(second);
+        viewModel.Nodes.Add(third);
+
+        viewModel.MoveSelectedNodesCommand.Execute(new Vector(8, 12));
+
+        first.Position.Should().Be(new Point(18, 32));
+        second.Position.Should().Be(new Point(308, 32));
+        third.Position.Should().Be(new Point(500, 20));
+    }
+
+    [Fact]
     public void MoveNodeCommand_ZeroDelta_DoesNotRaiseNodeNotification()
     {
         var node = new NodeViewModel(Guid.NewGuid(), "core.datasource.csv", "CSV 读取", 10, 20);
