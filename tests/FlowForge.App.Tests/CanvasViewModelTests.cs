@@ -114,6 +114,54 @@ public sealed class CanvasViewModelTests
     }
 
     [Fact]
+    public void CompleteEdgeDragCommand_IncompatibleInput_DoesNotAddEdgeAndClearsDraft()
+    {
+        var sourceNode = new NodeViewModel(Guid.NewGuid(), "core.datasource.text", "文本读取", 100, 200);
+        var targetNode = new NodeViewModel(Guid.NewGuid(), "core.transform.json-parse", "JSON 解析", 400, 200);
+        var sourcePort = new PortViewModel(sourceNode, "content", "内容", PortDirection.Output, typeof(string), 0);
+        var targetPort = new PortViewModel(targetNode, "json", "JSON", PortDirection.Input, typeof(int), 0);
+        var viewModel = new CanvasViewModel();
+        viewModel.BeginEdgeDragCommand.Execute(new BeginEdgeDragRequest(sourcePort, new Point(480, 260)));
+
+        viewModel.CompleteEdgeDragCommand.Execute(targetPort);
+
+        viewModel.DraftEdge.Should().BeNull();
+        viewModel.Edges.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void PreviewEdgeTargetCommand_CompatibleInput_SetsCompatibleState()
+    {
+        var sourceNode = new NodeViewModel(Guid.NewGuid(), "core.datasource.text", "文本读取", 100, 200);
+        var targetNode = new NodeViewModel(Guid.NewGuid(), "core.sink.console", "控制台输出", 400, 200);
+        var sourcePort = new PortViewModel(sourceNode, "content", "内容", PortDirection.Output, typeof(string), 0);
+        var targetPort = new PortViewModel(targetNode, "value", "值", PortDirection.Input, typeof(object), 0);
+        var viewModel = new CanvasViewModel();
+        viewModel.BeginEdgeDragCommand.Execute(new BeginEdgeDragRequest(sourcePort, new Point(480, 260)));
+
+        viewModel.PreviewEdgeTargetCommand.Execute(targetPort);
+
+        viewModel.ConnectionPreviewState.Should().Be(ConnectionPreviewState.Compatible);
+        viewModel.PreviewTargetPort.Should().BeSameAs(targetPort);
+    }
+
+    [Fact]
+    public void PreviewEdgeTargetCommand_IncompatibleInput_SetsIncompatibleState()
+    {
+        var sourceNode = new NodeViewModel(Guid.NewGuid(), "core.datasource.text", "文本读取", 100, 200);
+        var targetNode = new NodeViewModel(Guid.NewGuid(), "core.transform.json-parse", "JSON 解析", 400, 200);
+        var sourcePort = new PortViewModel(sourceNode, "content", "内容", PortDirection.Output, typeof(string), 0);
+        var targetPort = new PortViewModel(targetNode, "json", "JSON", PortDirection.Input, typeof(int), 0);
+        var viewModel = new CanvasViewModel();
+        viewModel.BeginEdgeDragCommand.Execute(new BeginEdgeDragRequest(sourcePort, new Point(480, 260)));
+
+        viewModel.PreviewEdgeTargetCommand.Execute(targetPort);
+
+        viewModel.ConnectionPreviewState.Should().Be(ConnectionPreviewState.Incompatible);
+        viewModel.PreviewTargetPort.Should().BeSameAs(targetPort);
+    }
+
+    [Fact]
     public void CancelEdgeDragCommand_ActiveDraft_ClearsDraft()
     {
         var sourceNode = new NodeViewModel(Guid.NewGuid(), "core.datasource.text", "文本读取", 100, 200);

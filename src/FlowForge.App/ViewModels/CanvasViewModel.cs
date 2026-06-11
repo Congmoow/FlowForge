@@ -19,6 +19,7 @@ public sealed class CanvasViewModel : ReactiveObject
         MoveNodeCommand = ReactiveCommand.Create<MoveNodeRequest>(MoveNode);
         BeginEdgeDragCommand = ReactiveCommand.Create<BeginEdgeDragRequest>(BeginEdgeDrag);
         UpdateEdgeDragCommand = ReactiveCommand.Create<Point>(UpdateEdgeDrag);
+        PreviewEdgeTargetCommand = ReactiveCommand.Create<PortViewModel?>(PreviewEdgeTarget);
         CompleteEdgeDragCommand = ReactiveCommand.Create<PortViewModel>(CompleteEdgeDrag);
         CancelEdgeDragCommand = ReactiveCommand.Create(CancelEdgeDrag);
     }
@@ -40,6 +41,18 @@ public sealed class CanvasViewModel : ReactiveObject
     public EdgeViewModel? DraftEdge { get; private set; }
 
     /// <summary>
+    /// 当前预览的目标端口。
+    /// </summary>
+    [Reactive]
+    public PortViewModel? PreviewTargetPort { get; private set; }
+
+    /// <summary>
+    /// 当前连线目标兼容状态。
+    /// </summary>
+    [Reactive]
+    public ConnectionPreviewState ConnectionPreviewState { get; private set; }
+
+    /// <summary>
     /// 按位移移动节点的命令。
     /// </summary>
     public ICommand MoveNodeCommand { get; }
@@ -53,6 +66,11 @@ public sealed class CanvasViewModel : ReactiveObject
     /// 更新草稿连线终点的命令。
     /// </summary>
     public ICommand UpdateEdgeDragCommand { get; }
+
+    /// <summary>
+    /// 预览当前悬停端口兼容性的命令。
+    /// </summary>
+    public ICommand PreviewEdgeTargetCommand { get; }
 
     /// <summary>
     /// 完成端口连线拖拽的命令。
@@ -99,17 +117,39 @@ public sealed class CanvasViewModel : ReactiveObject
     {
         if (DraftEdge is null || !DraftEdge.Source.CanConnectTo(target))
         {
-            DraftEdge = null;
+            ClearDraftEdge();
             return;
         }
 
         Edges.Add(new EdgeViewModel(Guid.NewGuid(), DraftEdge.Source, target));
-        DraftEdge = null;
+        ClearDraftEdge();
     }
 
     private void CancelEdgeDrag()
     {
+        ClearDraftEdge();
+    }
+
+    private void PreviewEdgeTarget(PortViewModel? target)
+    {
+        PreviewTargetPort = target;
+
+        if (DraftEdge is null || target is null || target.Direction != PortDirection.Input)
+        {
+            ConnectionPreviewState = ConnectionPreviewState.None;
+            return;
+        }
+
+        ConnectionPreviewState = DraftEdge.Source.CanConnectTo(target)
+            ? ConnectionPreviewState.Compatible
+            : ConnectionPreviewState.Incompatible;
+    }
+
+    private void ClearDraftEdge()
+    {
         DraftEdge = null;
+        PreviewTargetPort = null;
+        ConnectionPreviewState = ConnectionPreviewState.None;
     }
 }
 

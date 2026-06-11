@@ -24,6 +24,8 @@ public sealed class NodeCanvas : Control
     private static readonly IBrush PortFill = new SolidColorBrush(Color.Parse("#2563EB"));
     private static readonly Pen PortStroke = new(new SolidColorBrush(Color.Parse("#FFFFFF")), 1.5);
     private static readonly Pen EdgePen = new(new SolidColorBrush(Color.Parse("#64748B")), 2);
+    private static readonly IBrush IncompatibleFill = new SolidColorBrush(Color.Parse("#DC2626"));
+    private static readonly Pen IncompatibleStroke = new(new SolidColorBrush(Color.Parse("#FFFFFF")), 1.5);
     private static readonly IBrush HeaderFill = new SolidColorBrush(Color.Parse("#EFF6FF"));
     private static readonly IBrush TextFill = new SolidColorBrush(Color.Parse("#1E293B"));
 
@@ -61,6 +63,8 @@ public sealed class NodeCanvas : Control
             {
                 DrawNode(context, node);
             }
+
+            DrawConnectionPreview(context, canvas);
 
             return;
         }
@@ -121,7 +125,9 @@ public sealed class NodeCanvas : Control
 
         if (isDraggingEdge && DataContext is CanvasViewModel edgeCanvas)
         {
-            edgeCanvas.UpdateEdgeDragCommand.Execute(e.GetPosition(this));
+            var position = e.GetPosition(this);
+            edgeCanvas.UpdateEdgeDragCommand.Execute(position);
+            edgeCanvas.PreviewEdgeTargetCommand.Execute(FindPortAt(edgeCanvas, position));
             InvalidateVisual();
             e.Handled = true;
             return;
@@ -242,6 +248,18 @@ public sealed class NodeCanvas : Control
         {
             context.DrawEllipse(PortFill, PortStroke, port.AnchorPoint, PortRadius, PortRadius);
         }
+    }
+
+    private static void DrawConnectionPreview(DrawingContext context, CanvasViewModel canvas)
+    {
+        if (canvas.ConnectionPreviewState != ConnectionPreviewState.Incompatible || canvas.PreviewTargetPort is null)
+        {
+            return;
+        }
+
+        var center = canvas.PreviewTargetPort.AnchorPoint + new Vector(-18, -18);
+        context.DrawEllipse(IncompatibleFill, IncompatibleStroke, center, 8, 8);
+        context.DrawLine(IncompatibleStroke, center + new Vector(-4, -4), center + new Vector(4, 4));
     }
 
     private static NodeViewModel? FindNodeAt(CanvasViewModel canvas, Point position)
