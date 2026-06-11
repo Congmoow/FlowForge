@@ -9,6 +9,8 @@ coverage/
 *.coverage
 *.coveragexml
 *.xml
+!src/FlowForge.App/FodyWeavers.xml
+**/FodyWeavers.xsd
 
 # IDE and editor state
 .vs/
