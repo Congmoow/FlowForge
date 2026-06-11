@@ -32,7 +32,7 @@ public sealed class CanvasViewModelTests
         node.Title.Should().Be("文本读取");
         node.Position.Should().Be(new Point(120, 240));
         node.Outputs.Should().ContainSingle();
-        node.Outputs[0].DataType.Should().Be(typeof(string));
+        node.Outputs[0].DataType.Should().Be<string>();
     }
 
     [Fact]

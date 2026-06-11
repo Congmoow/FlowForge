@@ -17,7 +17,7 @@ public sealed class PortViewModelTests
         port.Id.Should().Be("content");
         port.DisplayName.Should().Be("内容");
         port.Direction.Should().Be(PortDirection.Output);
-        port.DataType.Should().Be(typeof(string));
+        port.DataType.Should().Be<string>();
         port.Index.Should().Be(0);
     }
 
