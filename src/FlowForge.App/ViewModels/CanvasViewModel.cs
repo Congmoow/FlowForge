@@ -17,6 +17,8 @@ public sealed class CanvasViewModel : ReactiveObject
     public CanvasViewModel()
     {
         MoveNodeCommand = ReactiveCommand.Create<MoveNodeRequest>(MoveNode);
+        SelectNodeCommand = ReactiveCommand.Create<SelectNodeRequest>(SelectNode);
+        ClearSelectionCommand = ReactiveCommand.Create(ClearSelection);
         AddNodeFromTemplateCommand = ReactiveCommand.Create<AddNodeFromTemplateRequest>(AddNodeFromTemplate);
         BeginEdgeDragCommand = ReactiveCommand.Create<BeginEdgeDragRequest>(BeginEdgeDrag);
         UpdateEdgeDragCommand = ReactiveCommand.Create<Point>(UpdateEdgeDrag);
@@ -59,6 +61,16 @@ public sealed class CanvasViewModel : ReactiveObject
     public ICommand MoveNodeCommand { get; }
 
     /// <summary>
+    /// 选择节点的命令。
+    /// </summary>
+    public ICommand SelectNodeCommand { get; }
+
+    /// <summary>
+    /// 清空节点选择的命令。
+    /// </summary>
+    public ICommand ClearSelectionCommand { get; }
+
+    /// <summary>
     /// 从节点模板创建节点的命令。
     /// </summary>
     public ICommand AddNodeFromTemplateCommand { get; }
@@ -97,6 +109,37 @@ public sealed class CanvasViewModel : ReactiveObject
         }
 
         node.Position += request.Delta;
+    }
+
+    private void SelectNode(SelectNodeRequest request)
+    {
+        var node = Nodes.FirstOrDefault(candidate => candidate.Id == request.NodeId);
+        if (node is null)
+        {
+            return;
+        }
+
+        switch (request.Gesture)
+        {
+            case SelectionGesture.Replace:
+                ClearSelection();
+                node.IsSelected = true;
+                break;
+            case SelectionGesture.Add:
+                node.IsSelected = true;
+                break;
+            case SelectionGesture.Toggle:
+                node.IsSelected = !node.IsSelected;
+                break;
+        }
+    }
+
+    private void ClearSelection()
+    {
+        foreach (var node in Nodes)
+        {
+            node.IsSelected = false;
+        }
     }
 
     private void AddNodeFromTemplate(AddNodeFromTemplateRequest request)
@@ -184,6 +227,13 @@ public sealed class CanvasViewModel : ReactiveObject
 /// <param name="NodeId">要移动的节点标识。</param>
 /// <param name="Delta">本次移动位移。</param>
 public sealed record MoveNodeRequest(Guid NodeId, Vector Delta);
+
+/// <summary>
+/// 选择节点命令的参数。
+/// </summary>
+/// <param name="NodeId">要选择的节点标识。</param>
+/// <param name="Gesture">选择手势。</param>
+public sealed record SelectNodeRequest(Guid NodeId, SelectionGesture Gesture);
 
 /// <summary>
 /// 从模板创建节点命令的参数。

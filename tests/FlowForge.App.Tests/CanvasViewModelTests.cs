@@ -48,6 +48,70 @@ public sealed class CanvasViewModelTests
     }
 
     [Fact]
+    public void SelectNodeCommand_NormalClick_SelectsOnlyRequestedNode()
+    {
+        var first = new NodeViewModel(Guid.NewGuid(), "core.datasource.csv", "CSV 读取", 10, 20);
+        var second = new NodeViewModel(Guid.NewGuid(), "core.sink.console", "控制台输出", 300, 20)
+        {
+            IsSelected = true,
+        };
+        var viewModel = new CanvasViewModel();
+        viewModel.Nodes.Add(first);
+        viewModel.Nodes.Add(second);
+
+        viewModel.SelectNodeCommand.Execute(new SelectNodeRequest(first.Id, SelectionGesture.Replace));
+
+        first.IsSelected.Should().BeTrue();
+        second.IsSelected.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SelectNodeCommand_CtrlClick_TogglesRequestedNode()
+    {
+        var node = new NodeViewModel(Guid.NewGuid(), "core.datasource.csv", "CSV 读取", 10, 20);
+        var viewModel = new CanvasViewModel();
+        viewModel.Nodes.Add(node);
+
+        viewModel.SelectNodeCommand.Execute(new SelectNodeRequest(node.Id, SelectionGesture.Toggle));
+        viewModel.SelectNodeCommand.Execute(new SelectNodeRequest(node.Id, SelectionGesture.Toggle));
+
+        node.IsSelected.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SelectNodeCommand_ShiftClick_AddsRequestedNode()
+    {
+        var first = new NodeViewModel(Guid.NewGuid(), "core.datasource.csv", "CSV 读取", 10, 20)
+        {
+            IsSelected = true,
+        };
+        var second = new NodeViewModel(Guid.NewGuid(), "core.sink.console", "控制台输出", 300, 20);
+        var viewModel = new CanvasViewModel();
+        viewModel.Nodes.Add(first);
+        viewModel.Nodes.Add(second);
+
+        viewModel.SelectNodeCommand.Execute(new SelectNodeRequest(second.Id, SelectionGesture.Add));
+
+        first.IsSelected.Should().BeTrue();
+        second.IsSelected.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ClearSelectionCommand_SelectedNodes_ClearsSelection()
+    {
+        var node = new NodeViewModel(Guid.NewGuid(), "core.datasource.csv", "CSV 读取", 10, 20)
+        {
+            IsSelected = true,
+        };
+        var viewModel = new CanvasViewModel();
+        viewModel.Nodes.Add(node);
+
+        viewModel.ClearSelectionCommand.Execute(null);
+
+        node.IsSelected.Should().BeFalse();
+    }
+
+    [Fact]
     public void MoveNodeCommand_ExistingNode_AppliesMultipleDeltas()
     {
         var node = new NodeViewModel(Guid.NewGuid(), "core.datasource.csv", "CSV 读取", 10, 20);

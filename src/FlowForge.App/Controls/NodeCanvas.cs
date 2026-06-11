@@ -21,6 +21,7 @@ public sealed class NodeCanvas : Control
     private static readonly Pen GridPen = new(new SolidColorBrush(Color.Parse("#E2E8F0")), 1);
     private static readonly IBrush NodeFill = new SolidColorBrush(Color.Parse("#FFFFFF"));
     private static readonly Pen NodeStroke = new(new SolidColorBrush(Color.Parse("#2563EB")), 1.5);
+    private static readonly Pen SelectedNodeStroke = new(new SolidColorBrush(Color.Parse("#16A34A")), 2.5);
     private static readonly IBrush PortFill = new SolidColorBrush(Color.Parse("#2563EB"));
     private static readonly Pen PortStroke = new(new SolidColorBrush(Color.Parse("#FFFFFF")), 1.5);
     private static readonly Pen EdgePen = new(new SolidColorBrush(Color.Parse("#64748B")), 2);
@@ -156,9 +157,13 @@ public sealed class NodeCanvas : Control
         var node = FindNodeAt(canvas, position);
         if (node is null)
         {
+            canvas.ClearSelectionCommand.Execute(null);
+            InvalidateVisual();
+            e.Handled = true;
             return;
         }
 
+        canvas.SelectNodeCommand.Execute(new SelectNodeRequest(node.Id, GetSelectionGesture(e.KeyModifiers)));
         draggingNodeId = node.Id;
         lastPointerPosition = position;
         e.Pointer.Capture(this);
@@ -256,16 +261,16 @@ public sealed class NodeCanvas : Control
     private static void DrawNode(DrawingContext context, NodeViewModel node)
     {
         var bounds = new Rect(node.Position, new Size(NodeWidth, NodeHeight));
-        DrawNode(context, bounds, node.Title, node.TypeId);
+        DrawNode(context, bounds, node.Title, node.TypeId, node.IsSelected);
         DrawPorts(context, node);
     }
 
-    private static void DrawNode(DrawingContext context, Rect node, string titleText, string bodyText)
+    private static void DrawNode(DrawingContext context, Rect node, string titleText, string bodyText, bool isSelected = false)
     {
         var header = new Rect(node.X, node.Y, node.Width, NodeHeaderHeight);
 
         context.FillRectangle(NodeFill, node, 8);
-        context.DrawRectangle(NodeStroke, node, 8);
+        context.DrawRectangle(isSelected ? SelectedNodeStroke : NodeStroke, node, 8);
         context.FillRectangle(HeaderFill, header, 8);
 
         var title = new FormattedText(
@@ -343,6 +348,18 @@ public sealed class NodeCanvas : Control
     {
         var delta = first - second;
         return Math.Sqrt(delta.X * delta.X + delta.Y * delta.Y);
+    }
+
+    private static SelectionGesture GetSelectionGesture(KeyModifiers modifiers)
+    {
+        if (modifiers.HasFlag(KeyModifiers.Control))
+        {
+            return SelectionGesture.Toggle;
+        }
+
+        return modifiers.HasFlag(KeyModifiers.Shift)
+            ? SelectionGesture.Add
+            : SelectionGesture.Replace;
     }
 
     private void StopDragging(IPointer pointer)
