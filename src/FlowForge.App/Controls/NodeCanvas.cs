@@ -38,6 +38,45 @@ public sealed class NodeCanvas : Control
     private Point lastPointerPosition;
     private bool isDraggingEdge;
 
+    /// <summary>
+    /// 画布 ViewModel 属性。
+    /// </summary>
+    public static readonly StyledProperty<CanvasViewModel?> CanvasProperty =
+        AvaloniaProperty.Register<NodeCanvas, CanvasViewModel?>(nameof(Canvas));
+
+    /// <summary>
+    /// 节点库 ViewModel 属性。
+    /// </summary>
+    public static readonly StyledProperty<ToolboxViewModel?> ToolboxProperty =
+        AvaloniaProperty.Register<NodeCanvas, ToolboxViewModel?>(nameof(Toolbox));
+
+    /// <summary>
+    /// 初始化节点画布控件。
+    /// </summary>
+    public NodeCanvas()
+    {
+        DragDrop.SetAllowDrop(this, true);
+        AddHandler(DragDrop.DropEvent, OnDrop);
+    }
+
+    /// <summary>
+    /// 画布 ViewModel。
+    /// </summary>
+    public CanvasViewModel? Canvas
+    {
+        get => GetValue(CanvasProperty);
+        set => SetValue(CanvasProperty, value);
+    }
+
+    /// <summary>
+    /// 节点库 ViewModel。
+    /// </summary>
+    public ToolboxViewModel? Toolbox
+    {
+        get => GetValue(ToolboxProperty);
+        set => SetValue(ToolboxProperty, value);
+    }
+
     /// <inheritdoc />
     public override void Render(DrawingContext context)
     {
@@ -47,7 +86,7 @@ public sealed class NodeCanvas : Control
         context.FillRectangle(CanvasBackground, bounds);
         DrawGrid(context, bounds);
 
-        if (DataContext is CanvasViewModel canvas && canvas.Nodes.Count > 0)
+        if (Canvas is { Nodes.Count: > 0 } canvas)
         {
             foreach (var edge in canvas.Edges)
             {
@@ -83,7 +122,7 @@ public sealed class NodeCanvas : Control
     {
         base.OnPointerPressed(e);
 
-        if (DataContext is not CanvasViewModel canvas)
+        if (Canvas is not { } canvas)
         {
             return;
         }
@@ -95,6 +134,14 @@ public sealed class NodeCanvas : Control
         }
 
         var position = e.GetPosition(this);
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && Toolbox is { } toolbox)
+        {
+            canvas.AddNodeFromTemplateCommand.Execute(new AddNodeFromTemplateRequest(toolbox.SelectedTemplate, position));
+            InvalidateVisual();
+            e.Handled = true;
+            return;
+        }
+
         var port = FindPortAt(canvas, position);
         if (port is { Direction: PortDirection.Output })
         {
@@ -123,7 +170,7 @@ public sealed class NodeCanvas : Control
     {
         base.OnPointerMoved(e);
 
-        if (isDraggingEdge && DataContext is CanvasViewModel edgeCanvas)
+        if (isDraggingEdge && Canvas is { } edgeCanvas)
         {
             var position = e.GetPosition(this);
             edgeCanvas.UpdateEdgeDragCommand.Execute(position);
@@ -133,7 +180,7 @@ public sealed class NodeCanvas : Control
             return;
         }
 
-        if (draggingNodeId is not { } nodeId || DataContext is not CanvasViewModel canvas)
+        if (draggingNodeId is not { } nodeId || Canvas is not { } canvas)
         {
             return;
         }
@@ -163,7 +210,7 @@ public sealed class NodeCanvas : Control
     {
         base.OnPointerReleased(e);
 
-        if (isDraggingEdge && DataContext is CanvasViewModel canvas)
+        if (isDraggingEdge && Canvas is { } canvas)
         {
             var targetPort = FindPortAt(canvas, e.GetPosition(this));
             if (targetPort is { Direction: PortDirection.Input })
@@ -307,5 +354,18 @@ public sealed class NodeCanvas : Control
 
         draggingNodeId = null;
         pointer.Capture(null);
+    }
+
+    private void OnDrop(object? sender, DragEventArgs e)
+    {
+        if (Canvas is not { } canvas || Toolbox is not { } toolbox)
+        {
+            return;
+        }
+
+        var template = e.Data.Get(ToolboxListBox.DragNodeTemplateFormat) as NodeTemplateViewModel ?? toolbox.SelectedTemplate;
+        canvas.AddNodeFromTemplateCommand.Execute(new AddNodeFromTemplateRequest(template, e.GetPosition(this)));
+        InvalidateVisual();
+        e.Handled = true;
     }
 }

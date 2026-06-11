@@ -15,6 +15,27 @@ public sealed class CanvasViewModelTests
     }
 
     [Fact]
+    public void AddNodeFromTemplateCommand_TemplateAndPosition_AddsNodeWithPorts()
+    {
+        var template = new NodeTemplateViewModel(
+            "core.datasource.text",
+            "文本读取",
+            [],
+            [new PortTemplateViewModel("content", "content", PortDirection.Output, typeof(string))]);
+        var viewModel = new CanvasViewModel();
+
+        viewModel.AddNodeFromTemplateCommand.Execute(new AddNodeFromTemplateRequest(template, new Point(120, 240)));
+
+        viewModel.Nodes.Should().ContainSingle();
+        var node = viewModel.Nodes[0];
+        node.TypeId.Should().Be("core.datasource.text");
+        node.Title.Should().Be("文本读取");
+        node.Position.Should().Be(new Point(120, 240));
+        node.Outputs.Should().ContainSingle();
+        node.Outputs[0].DataType.Should().Be(typeof(string));
+    }
+
+    [Fact]
     public void MoveNodeCommand_ExistingNode_AddsDeltaToPosition()
     {
         var node = new NodeViewModel(Guid.NewGuid(), "core.datasource.csv", "CSV 读取", 10, 20);

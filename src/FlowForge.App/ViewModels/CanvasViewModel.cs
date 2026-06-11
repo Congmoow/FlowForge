@@ -17,6 +17,7 @@ public sealed class CanvasViewModel : ReactiveObject
     public CanvasViewModel()
     {
         MoveNodeCommand = ReactiveCommand.Create<MoveNodeRequest>(MoveNode);
+        AddNodeFromTemplateCommand = ReactiveCommand.Create<AddNodeFromTemplateRequest>(AddNodeFromTemplate);
         BeginEdgeDragCommand = ReactiveCommand.Create<BeginEdgeDragRequest>(BeginEdgeDrag);
         UpdateEdgeDragCommand = ReactiveCommand.Create<Point>(UpdateEdgeDrag);
         PreviewEdgeTargetCommand = ReactiveCommand.Create<PortViewModel?>(PreviewEdgeTarget);
@@ -58,6 +59,11 @@ public sealed class CanvasViewModel : ReactiveObject
     public ICommand MoveNodeCommand { get; }
 
     /// <summary>
+    /// 从节点模板创建节点的命令。
+    /// </summary>
+    public ICommand AddNodeFromTemplateCommand { get; }
+
+    /// <summary>
     /// 开始从输出端口拖拽连线的命令。
     /// </summary>
     public ICommand BeginEdgeDragCommand { get; }
@@ -91,6 +97,25 @@ public sealed class CanvasViewModel : ReactiveObject
         }
 
         node.Position += request.Delta;
+    }
+
+    private void AddNodeFromTemplate(AddNodeFromTemplateRequest request)
+    {
+        var node = new NodeViewModel(Guid.NewGuid(), request.Template.TypeId, request.Template.Title, request.Position.X, request.Position.Y);
+
+        for (var index = 0; index < request.Template.Inputs.Count; index++)
+        {
+            var input = request.Template.Inputs[index];
+            node.Inputs.Add(new PortViewModel(node, input.Id, input.DisplayName, input.Direction, input.DataType, index));
+        }
+
+        for (var index = 0; index < request.Template.Outputs.Count; index++)
+        {
+            var output = request.Template.Outputs[index];
+            node.Outputs.Add(new PortViewModel(node, output.Id, output.DisplayName, output.Direction, output.DataType, index));
+        }
+
+        Nodes.Add(node);
     }
 
     private void BeginEdgeDrag(BeginEdgeDragRequest request)
@@ -159,6 +184,13 @@ public sealed class CanvasViewModel : ReactiveObject
 /// <param name="NodeId">要移动的节点标识。</param>
 /// <param name="Delta">本次移动位移。</param>
 public sealed record MoveNodeRequest(Guid NodeId, Vector Delta);
+
+/// <summary>
+/// 从模板创建节点命令的参数。
+/// </summary>
+/// <param name="Template">节点模板。</param>
+/// <param name="Position">投放位置。</param>
+public sealed record AddNodeFromTemplateRequest(NodeTemplateViewModel Template, Point Position);
 
 /// <summary>
 /// 开始拖拽连线命令的参数。
