@@ -22,6 +22,7 @@ public sealed class NodeCanvas : Control
     private static readonly Pen NodeStroke = new(new SolidColorBrush(Color.Parse("#2563EB")), 1.5);
     private static readonly IBrush PortFill = new SolidColorBrush(Color.Parse("#2563EB"));
     private static readonly Pen PortStroke = new(new SolidColorBrush(Color.Parse("#FFFFFF")), 1.5);
+    private static readonly Pen EdgePen = new(new SolidColorBrush(Color.Parse("#64748B")), 2);
     private static readonly IBrush HeaderFill = new SolidColorBrush(Color.Parse("#EFF6FF"));
     private static readonly IBrush TextFill = new SolidColorBrush(Color.Parse("#1E293B"));
 
@@ -44,6 +45,11 @@ public sealed class NodeCanvas : Control
 
         if (DataContext is CanvasViewModel canvas && canvas.Nodes.Count > 0)
         {
+            foreach (var edge in canvas.Edges)
+            {
+                DrawEdge(context, edge);
+            }
+
             foreach (var node in canvas.Nodes)
             {
                 DrawNode(context, node);
@@ -53,6 +59,12 @@ public sealed class NodeCanvas : Control
         }
 
         DrawPlaceholderNode(context);
+    }
+
+    private static void DrawEdge(DrawingContext context, EdgeViewModel edge)
+    {
+        var geometry = BezierEdgeShape.CreateGeometry(edge.StartPoint, edge.EndPoint);
+        context.DrawGeometry(null, EdgePen, geometry);
     }
 
     /// <inheritdoc />
