@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Avalonia;
 using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
 
 namespace FlowForge.App.ViewModels;
 
@@ -16,6 +17,10 @@ public sealed class CanvasViewModel : ReactiveObject
     public CanvasViewModel()
     {
         MoveNodeCommand = ReactiveCommand.Create<MoveNodeRequest>(MoveNode);
+        BeginEdgeDragCommand = ReactiveCommand.Create<BeginEdgeDragRequest>(BeginEdgeDrag);
+        UpdateEdgeDragCommand = ReactiveCommand.Create<Point>(UpdateEdgeDrag);
+        CompleteEdgeDragCommand = ReactiveCommand.Create<PortViewModel>(CompleteEdgeDrag);
+        CancelEdgeDragCommand = ReactiveCommand.Create(CancelEdgeDrag);
     }
 
     /// <summary>
@@ -29,9 +34,35 @@ public sealed class CanvasViewModel : ReactiveObject
     public ObservableCollection<EdgeViewModel> Edges { get; } = [];
 
     /// <summary>
+    /// 当前拖拽中的草稿连线。
+    /// </summary>
+    [Reactive]
+    public EdgeViewModel? DraftEdge { get; private set; }
+
+    /// <summary>
     /// 按位移移动节点的命令。
     /// </summary>
     public ICommand MoveNodeCommand { get; }
+
+    /// <summary>
+    /// 开始从输出端口拖拽连线的命令。
+    /// </summary>
+    public ICommand BeginEdgeDragCommand { get; }
+
+    /// <summary>
+    /// 更新草稿连线终点的命令。
+    /// </summary>
+    public ICommand UpdateEdgeDragCommand { get; }
+
+    /// <summary>
+    /// 完成端口连线拖拽的命令。
+    /// </summary>
+    public ICommand CompleteEdgeDragCommand { get; }
+
+    /// <summary>
+    /// 取消端口连线拖拽的命令。
+    /// </summary>
+    public ICommand CancelEdgeDragCommand { get; }
 
     private void MoveNode(MoveNodeRequest request)
     {
@@ -43,6 +74,43 @@ public sealed class CanvasViewModel : ReactiveObject
 
         node.Position += request.Delta;
     }
+
+    private void BeginEdgeDrag(BeginEdgeDragRequest request)
+    {
+        if (request.Source.Direction != PortDirection.Output)
+        {
+            return;
+        }
+
+        DraftEdge = EdgeViewModel.CreateDraft(request.Source, request.CurrentPoint);
+    }
+
+    private void UpdateEdgeDrag(Point currentPoint)
+    {
+        if (DraftEdge is null)
+        {
+            return;
+        }
+
+        DraftEdge.DraftEndPoint = currentPoint;
+    }
+
+    private void CompleteEdgeDrag(PortViewModel target)
+    {
+        if (DraftEdge is null || !DraftEdge.Source.CanConnectTo(target))
+        {
+            DraftEdge = null;
+            return;
+        }
+
+        Edges.Add(new EdgeViewModel(Guid.NewGuid(), DraftEdge.Source, target));
+        DraftEdge = null;
+    }
+
+    private void CancelEdgeDrag()
+    {
+        DraftEdge = null;
+    }
 }
 
 /// <summary>
@@ -51,3 +119,10 @@ public sealed class CanvasViewModel : ReactiveObject
 /// <param name="NodeId">要移动的节点标识。</param>
 /// <param name="Delta">本次移动位移。</param>
 public sealed record MoveNodeRequest(Guid NodeId, Vector Delta);
+
+/// <summary>
+/// 开始拖拽连线命令的参数。
+/// </summary>
+/// <param name="Source">输出端源端口。</param>
+/// <param name="CurrentPoint">当前指针位置。</param>
+public sealed record BeginEdgeDragRequest(PortViewModel Source, Point CurrentPoint);

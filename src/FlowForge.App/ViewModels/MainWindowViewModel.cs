@@ -16,6 +16,10 @@ public sealed class MainWindowViewModel : ReactiveObject
         var csvNode = new NodeViewModel(Guid.Parse("11111111-1111-1111-1111-111111111111"), "core.datasource.csv", "CSV 读取", 96, 80);
         csvNode.Outputs.Add(new PortViewModel(csvNode, "rows", "rows", PortDirection.Output, typeof(object), 0));
         Canvas.Nodes.Add(csvNode);
+
+        var consoleNode = new NodeViewModel(Guid.Parse("22222222-2222-2222-2222-222222222222"), "core.sink.console", "控制台输出", 420, 120);
+        consoleNode.Inputs.Add(new PortViewModel(consoleNode, "value", "value", PortDirection.Input, typeof(object), 0));
+        Canvas.Nodes.Add(consoleNode);
     }
 
     /// <summary>

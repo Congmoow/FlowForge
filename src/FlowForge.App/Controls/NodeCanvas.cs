@@ -15,6 +15,7 @@ public sealed class NodeCanvas : Control
     private const double NodeHeight = 96;
     private const double NodeHeaderHeight = 32;
     private const double PortRadius = 5;
+    private const double PortHitRadius = 10;
 
     private static readonly IBrush CanvasBackground = new SolidColorBrush(Color.Parse("#F8FAFC"));
     private static readonly Pen GridPen = new(new SolidColorBrush(Color.Parse("#E2E8F0")), 1);
@@ -33,6 +34,7 @@ public sealed class NodeCanvas : Control
 
     private Guid? draggingNodeId;
     private Point lastPointerPosition;
+    private bool isDraggingEdge;
 
     /// <inheritdoc />
     public override void Render(DrawingContext context)
@@ -48,6 +50,11 @@ public sealed class NodeCanvas : Control
             foreach (var edge in canvas.Edges)
             {
                 DrawEdge(context, edge);
+            }
+
+            if (canvas.DraftEdge is not null)
+            {
+                DrawEdge(context, canvas.DraftEdge);
             }
 
             foreach (var node in canvas.Nodes)
@@ -84,6 +91,17 @@ public sealed class NodeCanvas : Control
         }
 
         var position = e.GetPosition(this);
+        var port = FindPortAt(canvas, position);
+        if (port is { Direction: PortDirection.Output })
+        {
+            isDraggingEdge = true;
+            canvas.BeginEdgeDragCommand.Execute(new BeginEdgeDragRequest(port, position));
+            e.Pointer.Capture(this);
+            e.Handled = true;
+            InvalidateVisual();
+            return;
+        }
+
         var node = FindNodeAt(canvas, position);
         if (node is null)
         {
@@ -100,6 +118,14 @@ public sealed class NodeCanvas : Control
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
+
+        if (isDraggingEdge && DataContext is CanvasViewModel edgeCanvas)
+        {
+            edgeCanvas.UpdateEdgeDragCommand.Execute(e.GetPosition(this));
+            InvalidateVisual();
+            e.Handled = true;
+            return;
+        }
 
         if (draggingNodeId is not { } nodeId || DataContext is not CanvasViewModel canvas)
         {
@@ -130,6 +156,26 @@ public sealed class NodeCanvas : Control
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+
+        if (isDraggingEdge && DataContext is CanvasViewModel canvas)
+        {
+            var targetPort = FindPortAt(canvas, e.GetPosition(this));
+            if (targetPort is { Direction: PortDirection.Input })
+            {
+                canvas.CompleteEdgeDragCommand.Execute(targetPort);
+            }
+            else
+            {
+                canvas.CancelEdgeDragCommand.Execute(null);
+            }
+
+            isDraggingEdge = false;
+            e.Pointer.Capture(null);
+            InvalidateVisual();
+            e.Handled = true;
+            return;
+        }
+
         StopDragging(e.Pointer);
         e.Handled = true;
     }
@@ -210,6 +256,28 @@ public sealed class NodeCanvas : Control
         }
 
         return null;
+    }
+
+    private static PortViewModel? FindPortAt(CanvasViewModel canvas, Point position)
+    {
+        foreach (var node in canvas.Nodes.Reverse())
+        {
+            foreach (var port in node.Inputs.Concat(node.Outputs))
+            {
+                if (Distance(port.AnchorPoint, position) <= PortHitRadius)
+                {
+                    return port;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static double Distance(Point first, Point second)
+    {
+        var delta = first - second;
+        return Math.Sqrt(delta.X * delta.X + delta.Y * delta.Y);
     }
 
     private void StopDragging(IPointer pointer)

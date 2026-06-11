@@ -65,4 +65,64 @@ public sealed class CanvasViewModelTests
 
         node.Position.Should().Be(new Point(10, 20));
     }
+
+    [Fact]
+    public void BeginEdgeDragCommand_OutputPort_CreatesDraftEdge()
+    {
+        var sourceNode = new NodeViewModel(Guid.NewGuid(), "core.datasource.text", "文本读取", 100, 200);
+        var sourcePort = new PortViewModel(sourceNode, "content", "内容", PortDirection.Output, typeof(string), 0);
+        sourceNode.Outputs.Add(sourcePort);
+        var viewModel = new CanvasViewModel();
+        viewModel.Nodes.Add(sourceNode);
+
+        viewModel.BeginEdgeDragCommand.Execute(new BeginEdgeDragRequest(sourcePort, new Point(480, 260)));
+
+        viewModel.DraftEdge.Should().NotBeNull();
+        viewModel.DraftEdge!.Source.Should().BeSameAs(sourcePort);
+        viewModel.DraftEdge.EndPoint.Should().Be(new Point(480, 260));
+    }
+
+    [Fact]
+    public void UpdateEdgeDragCommand_ActiveDraft_UpdatesDraftEndPoint()
+    {
+        var sourceNode = new NodeViewModel(Guid.NewGuid(), "core.datasource.text", "文本读取", 100, 200);
+        var sourcePort = new PortViewModel(sourceNode, "content", "内容", PortDirection.Output, typeof(string), 0);
+        var viewModel = new CanvasViewModel();
+        viewModel.BeginEdgeDragCommand.Execute(new BeginEdgeDragRequest(sourcePort, new Point(480, 260)));
+
+        viewModel.UpdateEdgeDragCommand.Execute(new Point(520, 300));
+
+        viewModel.DraftEdge!.EndPoint.Should().Be(new Point(520, 300));
+    }
+
+    [Fact]
+    public void CompleteEdgeDragCommand_CompatibleInput_AddsEdgeAndClearsDraft()
+    {
+        var sourceNode = new NodeViewModel(Guid.NewGuid(), "core.datasource.text", "文本读取", 100, 200);
+        var targetNode = new NodeViewModel(Guid.NewGuid(), "core.sink.console", "控制台输出", 400, 200);
+        var sourcePort = new PortViewModel(sourceNode, "content", "内容", PortDirection.Output, typeof(string), 0);
+        var targetPort = new PortViewModel(targetNode, "value", "值", PortDirection.Input, typeof(object), 0);
+        var viewModel = new CanvasViewModel();
+        viewModel.BeginEdgeDragCommand.Execute(new BeginEdgeDragRequest(sourcePort, new Point(480, 260)));
+
+        viewModel.CompleteEdgeDragCommand.Execute(targetPort);
+
+        viewModel.DraftEdge.Should().BeNull();
+        viewModel.Edges.Should().ContainSingle();
+        viewModel.Edges[0].Source.Should().BeSameAs(sourcePort);
+        viewModel.Edges[0].Target.Should().BeSameAs(targetPort);
+    }
+
+    [Fact]
+    public void CancelEdgeDragCommand_ActiveDraft_ClearsDraft()
+    {
+        var sourceNode = new NodeViewModel(Guid.NewGuid(), "core.datasource.text", "文本读取", 100, 200);
+        var sourcePort = new PortViewModel(sourceNode, "content", "内容", PortDirection.Output, typeof(string), 0);
+        var viewModel = new CanvasViewModel();
+        viewModel.BeginEdgeDragCommand.Execute(new BeginEdgeDragRequest(sourcePort, new Point(480, 260)));
+
+        viewModel.CancelEdgeDragCommand.Execute(null);
+
+        viewModel.DraftEdge.Should().BeNull();
+    }
 }
