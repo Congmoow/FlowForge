@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "CSV 到控制台",
+    "createdAt": "2026-07-10T00:00:00Z",
+    "flowForgeVersion": "0.1.0"
+  },
+  "nodes": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "typeId": "core.datasource.csv",
+      "position": {
+        "x": 96,
+        "y": 80
+      },
+      "config": {
+        "filePath": "data/stage3-people.csv",
+        "hasHeader": true,
+        "delimiter": ","
+      }
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "typeId": "core.sink.console",
+      "position": {
+        "x": 420,
+        "y": 120
+      },
+      "config": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "sourceNodeId": "11111111-1111-1111-1111-111111111111",
+      "sourcePortId": "rows",
+      "targetNodeId": "22222222-2222-2222-2222-222222222222",
+      "targetPortId": "value"
+    }
+  ]
+}
