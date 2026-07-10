@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using FlowForge.App.Services;
 using FluentAssertions;
 using FlowForge.Core.Execution;
 using FlowForge.Core.Graph;
@@ -28,6 +29,8 @@ public sealed class CsvToConsoleWorkflowTests
 
         var csvId = nodes[0].GetProperty("id").GetGuid();
         var consoleId = nodes[1].GetProperty("id").GetGuid();
+        csvId.Should().Be(Stage3SampleWorkflowRunner.CsvNodeId);
+        consoleId.Should().Be(Stage3SampleWorkflowRunner.ConsoleNodeId);
         edgeElement.GetProperty("sourceNodeId").GetGuid().Should().Be(csvId);
         edgeElement.GetProperty("sourcePortId").GetString().Should().Be("rows");
         edgeElement.GetProperty("targetNodeId").GetGuid().Should().Be(consoleId);
@@ -64,6 +67,26 @@ public sealed class CsvToConsoleWorkflowTests
             executionEvent.Status == NodeExecutionStatus.Running
             || executionEvent.Status == NodeExecutionStatus.Succeeded);
         progress.Events.Count(executionEvent => executionEvent.Status == NodeExecutionStatus.Succeeded).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task RunAsync_Stage3SampleRunner_ExecutesPackagedCsvWorkflowAsync()
+    {
+        var csvPath = Path.Combine(AppContext.BaseDirectory, "samples", "data", "stage3-people.csv");
+        using var writer = new StringWriter();
+        var runner = new Stage3SampleWorkflowRunner(new WorkflowScheduler(), writer, csvPath);
+        var progress = new RecordingProgress();
+
+        await runner.RunAsync(progress, CancellationToken.None);
+
+        writer.ToString().Should().Contain("\"name\":\"Alice\"");
+        writer.ToString().Should().Contain("\"city\":\"上海\"");
+        progress.Events.Where(executionEvent => executionEvent.Status == NodeExecutionStatus.Succeeded)
+            .Select(executionEvent => executionEvent.NodeId)
+            .Should().BeEquivalentTo([
+                Stage3SampleWorkflowRunner.CsvNodeId,
+                Stage3SampleWorkflowRunner.ConsoleNodeId,
+            ]);
     }
 
     private sealed class RecordingProgress : IProgress<NodeExecutionEvent>
