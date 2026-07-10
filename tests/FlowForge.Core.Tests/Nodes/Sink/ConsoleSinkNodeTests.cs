@@ -56,6 +56,27 @@ public sealed class ConsoleSinkNodeTests
         writer.ToString().Should().Be(writer.NewLine);
     }
 
+    [Fact]
+    public async Task ExecuteAsync_StructuredRows_WritesJsonDataAsync()
+    {
+        using var writer = new StringWriter();
+        var node = new ConsoleSinkNode(writer);
+        var context = new TestExecutionContext();
+        IEnumerable<Dictionary<string, string>> rows =
+        [
+            new Dictionary<string, string>
+            {
+                ["name"] = "Alice",
+                ["city"] = "杭州",
+            },
+        ];
+        context.SetInput<object>(node.ValueInput, rows);
+
+        await node.ExecuteAsync(context, CancellationToken.None);
+
+        writer.ToString().Should().Be("""[{"name":"Alice","city":"杭州"}]""" + writer.NewLine);
+    }
+
     private sealed class RecordingTextWriter : StringWriter
     {
         public CancellationToken LastCancellationToken { get; private set; }
