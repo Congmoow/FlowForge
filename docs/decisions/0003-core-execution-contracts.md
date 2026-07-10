@@ -1,6 +1,6 @@
 # ADR-0003: 核心执行契约
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-07-10
 
 ## Context
@@ -11,11 +11,11 @@ Stage 3 需要先定义节点、端口、执行上下文和工作流领域模型
 
 - 使用 `INodeConfig` 作为所有可序列化节点配置的标记接口。
 - `IPort` 暴露稳定字符串 ID、显示名称和运行时数据类型，`IPort<T>` 继承 `IPort` 并表达强类型端口。
-- `IExecutionContext` 通过端口对象提供单值读取、流式读取和单项写入；通道完成、异常传播和生命周期由后续边路由器与调度器管理。
-- `Workflow` 是受控可变聚合，内部维护节点和边集合，仅通过领域方法增删，外部只能读取集合视图。
+- `IExecutionContext` 通过 `ReadAsync<T>`、`ReadAllAsync<T>` 和 `WriteAsync<T>` 接收强类型端口与 `CancellationToken`，分别提供单值读取、流式读取和单项写入；通道完成、异常传播和生命周期由后续边路由器与调度器管理。
+- `Workflow` 是受控可变聚合，内部维护节点和边集合，仅通过 `AddNode`、`RemoveNode`、`AddEdge` 和 `RemoveEdge` 修改，外部只能读取集合视图。
 - `WorkflowEdge` 使用工作流文件格式中的边 ID、源节点 ID、源端口 ID、目标节点 ID 和目标端口 ID。
 - 连接兼容性采用 `targetType.IsAssignableFrom(sourceType)`，允许精确类型和可赋值的派生类型，不执行自动类型转换。
-- `Workflow` 校验节点、端口、方向、类型、重复 ID 和输入端口单连接约束；自环及更复杂的环由后续 Kahn 拓扑排序统一检测。
+- `Workflow` 通过领域异常报告节点或边 ID 重复、节点或端口引用无效、端口方向错误、端口类型不兼容和输入端口重复连接；自环及更复杂的环由后续 Kahn 拓扑排序统一检测。
 
 ## Consequences
 
