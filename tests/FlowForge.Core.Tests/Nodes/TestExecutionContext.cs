@@ -1,10 +1,12 @@
 using FlowForge.Core.Abstractions;
+using System.Runtime.CompilerServices;
 
 namespace FlowForge.Core.Tests.Nodes;
 
 internal sealed class TestExecutionContext : IExecutionContext
 {
     private readonly Dictionary<IPort, object?> _inputs = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<IPort, IReadOnlyList<object?>> _inputStreams = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<IPort, object?> _outputs = new(ReferenceEqualityComparer.Instance);
 
     public IPort? LastReadPort { get; private set; }
@@ -20,6 +22,13 @@ internal sealed class TestExecutionContext : IExecutionContext
     public void SetInput<T>(IPort<T> port, T? value)
     {
         _inputs[port] = value;
+        _inputStreams[port] = [value];
+    }
+
+    public void SetInputStream<T>(IPort<T> port, params T?[] values)
+    {
+        _inputs[port] = values.FirstOrDefault();
+        _inputStreams[port] = values.Cast<object?>().ToArray();
     }
 
     public T? GetOutput<T>(IPort<T> port)
@@ -46,9 +55,25 @@ internal sealed class TestExecutionContext : IExecutionContext
         return ValueTask.FromResult((T?)value);
     }
 
-    public IAsyncEnumerable<T?> ReadAllAsync<T>(IPort<T> port, CancellationToken ct)
+    public async IAsyncEnumerable<T?> ReadAllAsync<T>(
+        IPort<T> port,
+        [EnumeratorCancellation] CancellationToken ct)
     {
-        throw new NotSupportedException("当前节点测试不使用流式输入。");
+        ct.ThrowIfCancellationRequested();
+        LastReadPort = port;
+        LastReadCancellationToken = ct;
+
+        if (!_inputStreams.TryGetValue(port, out var values))
+        {
+            throw new InvalidOperationException($"端口 {port.Id} 尚未设置输入流。");
+        }
+
+        foreach (var value in values)
+        {
+            ct.ThrowIfCancellationRequested();
+            yield return (T?)value;
+            await Task.Yield();
+        }
     }
 
     public ValueTask WriteAsync<T>(IPort<T> port, T? value, CancellationToken ct)

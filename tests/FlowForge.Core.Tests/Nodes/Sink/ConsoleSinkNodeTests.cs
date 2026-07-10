@@ -77,6 +77,19 @@ public sealed class ConsoleSinkNodeTests
         writer.ToString().Should().Be("""[{"name":"Alice","city":"杭州"}]""" + writer.NewLine);
     }
 
+    [Fact]
+    public async Task ExecuteAsync_StreamValues_WritesEveryValueAsync()
+    {
+        using var writer = new StringWriter();
+        var node = new ConsoleSinkNode(writer);
+        var context = new TestExecutionContext();
+        context.SetInputStream<object>(node.ValueInput, "first", 2, "third");
+
+        await node.ExecuteAsync(context, CancellationToken.None);
+
+        writer.ToString().Should().Be($"first{writer.NewLine}2{writer.NewLine}third{writer.NewLine}");
+    }
+
     private sealed class RecordingTextWriter : StringWriter
     {
         public CancellationToken LastCancellationToken { get; private set; }
