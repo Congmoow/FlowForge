@@ -24,7 +24,7 @@ Stage 3 验收文字要求 CSV→TextConcat→Console，但节点协议规定 CS
 - 调度器在确认拓扑无环后并发启动全部节点。下游节点通过 Channel 等待输入，因此输出一旦写入即可流式消费，不等待上游节点完全结束。
 - Stage 3 的 UI 运行按钮执行预置 CSV→Console 工作流，不提前实现 Stage 5 的属性面板或任意画布到 Core 的配置映射。
 - Stage 3 集成测试加载并校验真实 `samples/csv-to-console.ffw`，再使用等价 Core 工作流执行；完整 `.ffw` 反序列化仍属于 Stage 4。
-- CSV→Console 作为 Stage 3 端到端验收，Text→TextConcat→Console 由独立执行测试覆盖，从而保留节点协议的强类型约束。
+- CSV→Console 作为 Stage 3 端到端验收，TextConcat 的 `string[]` 强类型输入由独立节点测试覆盖，从而保留节点协议的类型约束。
 
 ## Consequences
 
