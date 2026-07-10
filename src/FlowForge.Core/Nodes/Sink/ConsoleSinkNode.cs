@@ -1,3 +1,6 @@
+using System.Collections;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using FlowForge.Core.Abstractions;
 using FlowForge.Core.Nodes.Internal;
 
@@ -13,6 +16,11 @@ public sealed record ConsoleSinkNodeConfig : INodeConfig;
 /// </summary>
 public sealed class ConsoleSinkNode : INode
 {
+    private static readonly JsonSerializerOptions StructuredValueJsonOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
     private readonly TextWriter _writer;
     private ConsoleSinkNodeConfig _config;
 
@@ -118,7 +126,19 @@ public sealed class ConsoleSinkNode : INode
 
         var value = await ctx.ReadAsync(ValueInput, ct).ConfigureAwait(false);
         ct.ThrowIfCancellationRequested();
-        var text = value?.ToString() ?? string.Empty;
+        var text = FormatValue(value);
         await _writer.WriteLineAsync(text.AsMemory(), ct).ConfigureAwait(false);
+    }
+
+    private static string FormatValue(object? value)
+    {
+        return value switch
+        {
+            null => string.Empty,
+            string text => text,
+            JsonElement json => json.GetRawText(),
+            IEnumerable => JsonSerializer.Serialize(value, value.GetType(), StructuredValueJsonOptions),
+            _ => value.ToString() ?? string.Empty,
+        };
     }
 }
