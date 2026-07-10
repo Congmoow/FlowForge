@@ -124,10 +124,12 @@ public sealed class ConsoleSinkNode : INode
     {
         ArgumentNullException.ThrowIfNull(ctx);
 
-        var value = await ctx.ReadAsync(ValueInput, ct).ConfigureAwait(false);
-        ct.ThrowIfCancellationRequested();
-        var text = FormatValue(value);
-        await _writer.WriteLineAsync(text.AsMemory(), ct).ConfigureAwait(false);
+        await foreach (var value in ctx.ReadAllAsync(ValueInput, ct).ConfigureAwait(false))
+        {
+            ct.ThrowIfCancellationRequested();
+            var text = FormatValue(value);
+            await _writer.WriteLineAsync(text.AsMemory(), ct).ConfigureAwait(false);
+        }
     }
 
     private static string FormatValue(object? value)
