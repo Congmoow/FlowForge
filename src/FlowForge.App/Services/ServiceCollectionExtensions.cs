@@ -1,4 +1,5 @@
 using FlowForge.App.ViewModels;
+using FlowForge.Core.Execution;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FlowForge.App.Services;
@@ -15,6 +16,8 @@ public static class ServiceCollectionExtensions
     /// <returns>注册后的服务集合。</returns>
     public static IServiceCollection AddFlowForgeApp(this IServiceCollection services)
     {
+        services.AddSingleton<WorkflowScheduler>();
+        services.AddSingleton<IStage3WorkflowRunner, Stage3SampleWorkflowRunner>();
         services.AddSingleton<MainWindowViewModel>();
         services.AddTransient<MainWindow>();
 

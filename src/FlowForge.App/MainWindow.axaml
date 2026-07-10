@@ -22,10 +22,28 @@
                 BorderBrush="#D8DEE8"
                 BorderThickness="0,0,0,1"
                 Padding="20,12">
-            <TextBlock Text="{Binding ApplicationName}"
-                       FontSize="18"
-                       FontWeight="SemiBold"
-                       Foreground="#172033" />
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <TextBlock Text="{Binding ApplicationName}"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="#172033"
+                           VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding StatusMessage}"
+                           Foreground="#667085"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Right" />
+                <Button Grid.Column="2"
+                        Content="运行"
+                        Command="{Binding RunCommand}"
+                        Margin="10,0,0,0"
+                        Padding="16,6" />
+                <Button Grid.Column="3"
+                        Content="停止"
+                        Command="{Binding StopCommand}"
+                        Margin="10,0,0,0"
+                        Padding="16,6" />
+            </Grid>
         </Border>
 
         <Border Grid.Row="1"

@@ -20,4 +20,14 @@
     <PackageReference Include="ReactiveUI" Version="19.5.41" />
     <PackageReference Include="ReactiveUI.Fody" Version="19.5.41" PrivateAssets="All" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlowForge.Core\FlowForge.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\samples\data\stage3-people.csv"
+          Link="samples\data\stage3-people.csv"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

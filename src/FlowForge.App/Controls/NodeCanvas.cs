@@ -1,3 +1,5 @@
+using System.Collections.Specialized;
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -20,8 +22,6 @@ public sealed class NodeCanvas : Control
     private static readonly IBrush CanvasBackground = new SolidColorBrush(Color.Parse("#F8FAFC"));
     private static readonly Pen GridPen = new(new SolidColorBrush(Color.Parse("#E2E8F0")), 1);
     private static readonly IBrush NodeFill = new SolidColorBrush(Color.Parse("#FFFFFF"));
-    private static readonly Pen NodeStroke = new(new SolidColorBrush(Color.Parse("#2563EB")), 1.5);
-    private static readonly Pen SelectedNodeStroke = new(new SolidColorBrush(Color.Parse("#16A34A")), 2.5);
     private static readonly IBrush PortFill = new SolidColorBrush(Color.Parse("#2563EB"));
     private static readonly Pen PortStroke = new(new SolidColorBrush(Color.Parse("#FFFFFF")), 1.5);
     private static readonly Pen EdgePen = new(new SolidColorBrush(Color.Parse("#64748B")), 2);
@@ -39,6 +39,7 @@ public sealed class NodeCanvas : Control
     private bool isDraggingSelection;
     private Point lastPointerPosition;
     private bool isDraggingEdge;
+    private CanvasViewModel? observedCanvas;
 
     /// <summary>
     /// 画布 ViewModel 属性。
@@ -59,6 +60,7 @@ public sealed class NodeCanvas : Control
     {
         DragDrop.SetAllowDrop(this, true);
         AddHandler(DragDrop.DropEvent, OnDrop);
+        this.GetObservable(CanvasProperty).Subscribe(ObserveCanvas);
     }
 
     /// <summary>
@@ -77,6 +79,28 @@ public sealed class NodeCanvas : Control
     {
         get => GetValue(ToolboxProperty);
         set => SetValue(ToolboxProperty, value);
+    }
+
+    /// <summary>
+    /// 获取因 ViewModel 状态变化触发的渲染失效次数。
+    /// </summary>
+    public int RenderInvalidationVersion { get; private set; }
+
+    /// <summary>
+    /// 返回执行状态对应的节点边框颜色。
+    /// </summary>
+    /// <param name="state">节点执行状态。</param>
+    /// <returns>节点边框颜色。</returns>
+    public static Color ResolveNodeBorderColor(NodeExecutionVisualState state)
+    {
+        return state switch
+        {
+            NodeExecutionVisualState.Idle => Color.Parse("#2563EB"),
+            NodeExecutionVisualState.Running => Color.Parse("#D97706"),
+            NodeExecutionVisualState.Success => Color.Parse("#16A34A"),
+            NodeExecutionVisualState.Failed => Color.Parse("#DC2626"),
+            _ => Color.Parse("#2563EB"),
+        };
     }
 
     /// <inheritdoc />
@@ -270,16 +294,23 @@ public sealed class NodeCanvas : Control
     private static void DrawNode(DrawingContext context, NodeViewModel node)
     {
         var bounds = new Rect(node.Position, new Size(NodeWidth, NodeHeight));
-        DrawNode(context, bounds, node.Title, node.TypeId, node.IsSelected);
+        DrawNode(context, bounds, node.Title, node.TypeId, node.ExecutionState, node.IsSelected);
         DrawPorts(context, node);
     }
 
-    private static void DrawNode(DrawingContext context, Rect node, string titleText, string bodyText, bool isSelected = false)
+    private static void DrawNode(
+        DrawingContext context,
+        Rect node,
+        string titleText,
+        string bodyText,
+        NodeExecutionVisualState state = NodeExecutionVisualState.Idle,
+        bool isSelected = false)
     {
         var header = new Rect(node.X, node.Y, node.Width, NodeHeaderHeight);
 
         context.FillRectangle(NodeFill, node, 8);
-        context.DrawRectangle(isSelected ? SelectedNodeStroke : NodeStroke, node, 8);
+        var stroke = new Pen(new SolidColorBrush(ResolveNodeBorderColor(state)), isSelected ? 2.5 : 1.5);
+        context.DrawRectangle(stroke, node, 8);
         context.FillRectangle(HeaderFill, header, 8);
 
         var title = new FormattedText(
@@ -357,6 +388,69 @@ public sealed class NodeCanvas : Control
     {
         var delta = first - second;
         return Math.Sqrt(delta.X * delta.X + delta.Y * delta.Y);
+    }
+
+    private void ObserveCanvas(CanvasViewModel? canvas)
+    {
+        if (observedCanvas is not null)
+        {
+            observedCanvas.Nodes.CollectionChanged -= OnNodesChanged;
+            observedCanvas.PropertyChanged -= OnCanvasPropertyChanged;
+            foreach (var node in observedCanvas.Nodes)
+            {
+                node.PropertyChanged -= OnNodePropertyChanged;
+            }
+        }
+
+        observedCanvas = canvas;
+        if (observedCanvas is not null)
+        {
+            observedCanvas.Nodes.CollectionChanged += OnNodesChanged;
+            observedCanvas.PropertyChanged += OnCanvasPropertyChanged;
+            foreach (var node in observedCanvas.Nodes)
+            {
+                node.PropertyChanged += OnNodePropertyChanged;
+            }
+        }
+
+        InvalidateCanvas();
+    }
+
+    private void OnNodesChanged(object? sender, NotifyCollectionChangedEventArgs eventArgs)
+    {
+        if (eventArgs.OldItems is not null)
+        {
+            foreach (NodeViewModel node in eventArgs.OldItems)
+            {
+                node.PropertyChanged -= OnNodePropertyChanged;
+            }
+        }
+
+        if (eventArgs.NewItems is not null)
+        {
+            foreach (NodeViewModel node in eventArgs.NewItems)
+            {
+                node.PropertyChanged += OnNodePropertyChanged;
+            }
+        }
+
+        InvalidateCanvas();
+    }
+
+    private void OnCanvasPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        InvalidateCanvas();
+    }
+
+    private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        InvalidateCanvas();
+    }
+
+    private void InvalidateCanvas()
+    {
+        RenderInvalidationVersion++;
+        InvalidateVisual();
     }
 
     /// <summary>
