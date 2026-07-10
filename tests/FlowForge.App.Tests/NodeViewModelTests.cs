@@ -18,6 +18,7 @@ public sealed class NodeViewModelTests
         viewModel.Title.Should().Be("CSV 读取");
         viewModel.Position.Should().Be(new Point(120, 240));
         viewModel.IsSelected.Should().BeFalse();
+        viewModel.ExecutionState.Should().Be(NodeExecutionVisualState.Idle);
     }
 
     [Fact]
@@ -56,5 +57,18 @@ public sealed class NodeViewModelTests
 
         viewModel.IsSelected.Should().BeTrue();
         changedProperties.Should().ContainSingle().Which.Should().Be(nameof(NodeViewModel.IsSelected));
+    }
+
+    [Fact]
+    public void ExecutionState_WhenChanged_RaisesPropertyNotification()
+    {
+        var viewModel = new NodeViewModel(Guid.NewGuid(), "core.datasource.csv", "CSV 读取", 0, 0);
+        var changedProperties = new List<string?>();
+        viewModel.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName);
+
+        viewModel.ExecutionState = NodeExecutionVisualState.Running;
+
+        viewModel.ExecutionState.Should().Be(NodeExecutionVisualState.Running);
+        changedProperties.Should().ContainSingle().Which.Should().Be(nameof(NodeViewModel.ExecutionState));
     }
 }

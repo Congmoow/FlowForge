@@ -65,4 +65,10 @@ public sealed class NodeViewModel : ReactiveObject
     /// </summary>
     [Reactive]
     public bool IsSelected { get; set; }
+
+    /// <summary>
+    /// 节点当前的执行高亮状态。
+    /// </summary>
+    [Reactive]
+    public NodeExecutionVisualState ExecutionState { get; set; }
 }
