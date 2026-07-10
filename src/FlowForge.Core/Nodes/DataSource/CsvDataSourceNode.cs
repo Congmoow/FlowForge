@@ -184,7 +184,7 @@ public sealed class CsvDataSourceNode : INode
 
     private static Dictionary<string, string> CreateRow(
         IReadOnlyList<string> headers,
-        IReadOnlyList<string> fields,
+        List<string> fields,
         int lineNumber)
     {
         if (fields.Count != headers.Count)
