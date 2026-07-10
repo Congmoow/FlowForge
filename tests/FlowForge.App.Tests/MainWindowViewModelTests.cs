@@ -20,6 +20,9 @@ public sealed class MainWindowViewModelTests
         viewModel.ToolboxTitle.Should().Be("节点库");
         viewModel.CanvasTitle.Should().Be("工作流画布");
         viewModel.PropertyPanelTitle.Should().Be("属性面板");
+        FindNode(viewModel, CsvNodeId).Outputs.Should().ContainSingle();
+        FindNode(viewModel, CsvNodeId).Outputs[0].DataType.Should()
+            .Be(typeof(IEnumerable<Dictionary<string, string>>));
     }
 
     [Fact]

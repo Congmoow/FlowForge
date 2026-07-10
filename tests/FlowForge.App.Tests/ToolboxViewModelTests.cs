@@ -15,6 +15,17 @@ public sealed class ToolboxViewModelTests
     }
 
     [Fact]
+    public void Constructor_CsvTemplate_UsesCoreRowsPortType()
+    {
+        var viewModel = new ToolboxViewModel();
+
+        var csv = viewModel.Templates.Single(template => template.TypeId == "core.datasource.csv");
+
+        csv.Outputs.Should().ContainSingle();
+        csv.Outputs[0].DataType.Should().Be(typeof(IEnumerable<Dictionary<string, string>>));
+    }
+
+    [Fact]
     public void Constructor_DefaultState_SelectsFirstTemplate()
     {
         var viewModel = new ToolboxViewModel();

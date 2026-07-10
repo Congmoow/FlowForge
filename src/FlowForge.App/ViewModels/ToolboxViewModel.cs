@@ -20,7 +20,11 @@ public sealed class ToolboxViewModel : ReactiveObject
                 "core.datasource.csv",
                 "CSV 读取",
                 [],
-                [new PortTemplateViewModel("rows", "rows", PortDirection.Output, typeof(object))]),
+                [new PortTemplateViewModel(
+                    "rows",
+                    "rows",
+                    PortDirection.Output,
+                    typeof(IEnumerable<Dictionary<string, string>>))]),
             new NodeTemplateViewModel(
                 "core.datasource.text",
                 "文本读取",

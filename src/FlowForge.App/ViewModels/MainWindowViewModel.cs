@@ -36,7 +36,13 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         Canvas = new CanvasViewModel();
         Toolbox = new ToolboxViewModel();
         var csvNode = new NodeViewModel(Guid.Parse("11111111-1111-1111-1111-111111111111"), "core.datasource.csv", "CSV 读取", 96, 80);
-        csvNode.Outputs.Add(new PortViewModel(csvNode, "rows", "rows", PortDirection.Output, typeof(object), 0));
+        csvNode.Outputs.Add(new PortViewModel(
+            csvNode,
+            "rows",
+            "rows",
+            PortDirection.Output,
+            typeof(IEnumerable<Dictionary<string, string>>),
+            0));
         Canvas.Nodes.Add(csvNode);
 
         var consoleNode = new NodeViewModel(Guid.Parse("22222222-2222-2222-2222-222222222222"), "core.sink.console", "控制台输出", 420, 120);
