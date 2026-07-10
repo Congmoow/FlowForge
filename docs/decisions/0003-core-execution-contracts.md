@@ -1,6 +1,6 @@
 # ADR-0003: 核心执行与 Channel 路由契约
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-07-10
 
 ## Context
