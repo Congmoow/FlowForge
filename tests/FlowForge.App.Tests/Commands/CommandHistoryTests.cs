@@ -59,6 +59,31 @@ public sealed class CommandHistoryTests
         history.CanRedo.Should().BeFalse();
     }
 
+    [Fact]
+    public void Undo_EmptyHistory_ReturnsFalse()
+    {
+        var history = new CommandHistory();
+
+        var result = history.Undo();
+
+        result.Should().BeFalse();
+        history.CanRedo.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Undo_ThrowingCommand_PreservesUndoState()
+    {
+        var command = new ThrowingUndoCommand();
+        var history = new CommandHistory();
+        history.Execute(command);
+
+        var action = () => history.Undo();
+
+        action.Should().Throw<InvalidOperationException>();
+        history.CanUndo.Should().BeTrue();
+        history.CanRedo.Should().BeFalse();
+    }
+
     private sealed class RecordingCommand : FlowForge.App.Commands.ICommand
     {
         public int ExecuteCount { get; private set; }
@@ -73,6 +98,18 @@ public sealed class CommandHistoryTests
         public void Undo()
         {
             UndoCount++;
+        }
+    }
+
+    private sealed class ThrowingUndoCommand : FlowForge.App.Commands.ICommand
+    {
+        public void Execute()
+        {
+        }
+
+        public void Undo()
+        {
+            throw new InvalidOperationException("撤销失败");
         }
     }
 }
