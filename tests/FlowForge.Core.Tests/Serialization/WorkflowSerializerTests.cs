@@ -60,6 +60,21 @@ public sealed class WorkflowSerializerTests
         rebuilt.Nodes.Should().ContainSingle(node => node.Id == sink.Id && node is ConsoleSinkNode);
     }
 
+    [Fact]
+    public void CreateWorkflow_UnsupportedSchemaVersion_Throws()
+    {
+        using var config = JsonDocument.Parse("{}");
+        var document = new WorkflowDocument(
+            new WorkflowMetadata("示例", DateTimeOffset.UnixEpoch, "0.1.0"),
+            [new WorkflowNodeDocument(Guid.NewGuid(), "core.datasource.text", new WorkflowNodePosition(0, 0), config.RootElement.Clone())],
+            [],
+            SchemaVersion: 2);
+
+        var action = () => WorkflowSerializer.CreateWorkflow(document, CreateRegistry());
+
+        action.Should().Throw<NotSupportedException>();
+    }
+
     private static NodeRegistry CreateRegistry()
     {
         var registry = new NodeRegistry();
