@@ -1,0 +1,5 @@
+请根据以下 CSV 数据生成一句简明摘要。
+
+name,city
+Alice,杭州
+Bob,上海
