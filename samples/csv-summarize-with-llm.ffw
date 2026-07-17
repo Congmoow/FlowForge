@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "CSV 摘要",
+    "createdAt": "2026-07-17T00:00:00Z",
+    "flowForgeVersion": "0.1.0"
+  },
+  "nodes": [
+    {
+      "id": "44444444-4444-4444-4444-444444444444",
+      "typeId": "core.datasource.text",
+      "position": { "x": 96, "y": 80 },
+      "config": { "filePath": "data/csv-summary-prompt.txt", "encoding": "utf-8" }
+    },
+    {
+      "id": "55555555-5555-5555-5555-555555555555",
+      "typeId": "core.llm.openai",
+      "position": { "x": 396, "y": 80 },
+      "config": {
+        "apiKeySecretId": "openai.demo",
+        "model": "gpt-4o-mini",
+        "temperature": 0.2,
+        "baseUrl": "https://api.openai.com/v1"
+      }
+    },
+    {
+      "id": "66666666-6666-6666-6666-666666666666",
+      "typeId": "core.sink.console",
+      "position": { "x": 696, "y": 80 },
+      "config": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "77777777-7777-7777-7777-777777777777",
+      "sourceNodeId": "44444444-4444-4444-4444-444444444444",
+      "sourcePortId": "content",
+      "targetNodeId": "55555555-5555-5555-5555-555555555555",
+      "targetPortId": "prompt"
+    },
+    {
+      "id": "88888888-8888-8888-8888-888888888888",
+      "sourceNodeId": "55555555-5555-5555-5555-555555555555",
+      "sourcePortId": "response",
+      "targetNodeId": "66666666-6666-6666-6666-666666666666",
+      "targetPortId": "value"
+    }
+  ]
+}
