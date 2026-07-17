@@ -37,6 +37,7 @@ public sealed class NodeCanvas : Control
 
     private Guid? draggingNodeId;
     private bool isDraggingSelection;
+    private Dictionary<NodeViewModel, Point>? dragStartPositions;
     private Point lastPointerPosition;
     private bool isDraggingEdge;
     private CanvasViewModel? observedCanvas;
@@ -191,6 +192,8 @@ public sealed class NodeCanvas : Control
         canvas.SelectNodeCommand.Execute(new SelectNodeRequest(node.Id, ResolveSelectionGesture(e.KeyModifiers, node.IsSelected)));
         draggingNodeId = node.Id;
         isDraggingSelection = node.IsSelected && canvas.Nodes.Count(candidate => candidate.IsSelected) > 1;
+        dragStartPositions = (isDraggingSelection ? canvas.Nodes.Where(candidate => candidate.IsSelected) : [node])
+            .ToDictionary(candidate => candidate, candidate => candidate.Position);
         lastPointerPosition = position;
         e.Pointer.Capture(this);
         e.Handled = true;
@@ -497,6 +500,8 @@ public sealed class NodeCanvas : Control
             return;
         }
 
+        Canvas?.CommitNodeMove(dragStartPositions ?? new Dictionary<NodeViewModel, Point>());
+        dragStartPositions = null;
         draggingNodeId = null;
         isDraggingSelection = false;
         pointer.Capture(null);

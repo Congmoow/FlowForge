@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Linq;
+using FlowForge.App.Commands;
 using FlowForge.App.Services;
 using FlowForge.Core.Execution;
 using FlowForge.Core.Serialization;
@@ -17,6 +18,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 {
     private readonly IStage3WorkflowRunner workflowRunner;
     private readonly IWorkflowFileService workflowFileService;
+    private readonly CommandHistory commandHistory = new();
     private WorkflowDocument? currentDocument;
     private CancellationTokenSource? runCancellation;
     private bool isDisposed;
@@ -49,7 +51,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         ArgumentNullException.ThrowIfNull(workflowFileService);
         this.workflowRunner = workflowRunner;
         this.workflowFileService = workflowFileService;
-        Canvas = new CanvasViewModel();
+        Canvas = new CanvasViewModel(commandHistory);
         Toolbox = new ToolboxViewModel();
         var csvNode = new NodeViewModel(Guid.Parse("11111111-1111-1111-1111-111111111111"), "core.datasource.csv", "CSV 读取", 96, 80);
         csvNode.Outputs.Add(new PortViewModel(
@@ -73,6 +75,13 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         OpenCommand = ReactiveCommand.CreateFromTask(OpenAsync);
         SaveCommand = ReactiveCommand.CreateFromTask(() => SaveAsync(saveAs: false));
         SaveAsCommand = ReactiveCommand.CreateFromTask(() => SaveAsync(saveAs: true));
+        var historyChanges = Observable.FromEventPattern(
+                handler => commandHistory.Changed += handler,
+                handler => commandHistory.Changed -= handler)
+            .Select(_ => Unit.Default)
+            .StartWith(Unit.Default);
+        UndoCommand = ReactiveCommand.Create(() => { commandHistory.Undo(); }, historyChanges.Select(_ => commandHistory.CanUndo));
+        RedoCommand = ReactiveCommand.Create(() => { commandHistory.Redo(); }, historyChanges.Select(_ => commandHistory.CanRedo));
     }
 
     /// <summary>
@@ -127,6 +136,12 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     /// <summary>获取另存为工作流命令。</summary>
     public ReactiveCommand<Unit, Unit> SaveAsCommand { get; }
 
+    /// <summary>获取撤销最近编辑的命令。</summary>
+    public ReactiveCommand<Unit, Unit> UndoCommand { get; }
+
+    /// <summary>获取重做最近撤销编辑的命令。</summary>
+    public ReactiveCommand<Unit, Unit> RedoCommand { get; }
+
     /// <summary>获取当前工作流文件路径。</summary>
     [Reactive]
     public string? CurrentFilePath { get; private set; }
@@ -162,6 +177,8 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         OpenCommand.Dispose();
         SaveCommand.Dispose();
         SaveAsCommand.Dispose();
+        UndoCommand.Dispose();
+        RedoCommand.Dispose();
         GC.SuppressFinalize(this);
     }
 

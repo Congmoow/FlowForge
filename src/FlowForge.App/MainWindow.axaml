@@ -38,6 +38,11 @@
                         <MenuItem Header="保存" Command="{Binding SaveCommand}" HotKey="Ctrl+S" />
                         <MenuItem Header="另存为…" Command="{Binding SaveAsCommand}" HotKey="Ctrl+Shift+S" />
                     </MenuItem>
+                    <MenuItem Header="编辑">
+                        <MenuItem Header="撤销" Command="{Binding UndoCommand}" HotKey="Ctrl+Z" />
+                        <MenuItem Header="重做" Command="{Binding RedoCommand}" HotKey="Ctrl+Y" />
+                        <MenuItem Header="重做" Command="{Binding RedoCommand}" HotKey="Ctrl+Shift+Z" />
+                    </MenuItem>
                 </Menu>
                 <TextBlock Grid.Column="2"
                            Text="{Binding StatusMessage}"
