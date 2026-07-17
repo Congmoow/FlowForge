@@ -51,12 +51,15 @@ public sealed class WorkflowScheduler
 
         for (var index = 0; index < orderedNodes.Count; index++)
         {
-            nodeTasks[index] = ExecuteNodeAsync(
-                orderedNodes[index],
-                router,
-                progress,
-                failureTracker,
-                linkedCancellation);
+            var node = orderedNodes[index];
+            nodeTasks[index] = Task.Run(
+                () => ExecuteNodeAsync(
+                    node,
+                    router,
+                    progress,
+                    failureTracker,
+                    linkedCancellation),
+                CancellationToken.None);
         }
 
         try
