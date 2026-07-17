@@ -1,5 +1,6 @@
 using System.Reactive.Threading.Tasks;
 using System.Text.Json;
+using Avalonia;
 using System.Windows.Input;
 using FlowForge.App.Services;
 using FlowForge.App.ViewModels;
@@ -207,6 +208,22 @@ public sealed class MainWindowViewModelTests
 
         files.LastSaveAs.Should().BeTrue();
         viewModel.CurrentFilePath.Should().Be("copy.ffw");
+    }
+
+    [Fact]
+    public void UndoRedoCommands_CommittedCanvasMove_RestoreAndReapplyPosition()
+    {
+        var viewModel = new MainWindowViewModel(new FakeStage3WorkflowRunner());
+        var node = FindNode(viewModel, CsvNodeId);
+        var original = node.Position;
+        node.Position = new Point(222, 333);
+
+        viewModel.Canvas.CommitNodeMove(new Dictionary<NodeViewModel, Point> { [node] = original });
+        viewModel.UndoCommand.Execute().Subscribe();
+
+        node.Position.Should().Be(original);
+        viewModel.RedoCommand.Execute().Subscribe();
+        node.Position.Should().Be(new Point(222, 333));
     }
 
     private static NodeViewModel FindNode(MainWindowViewModel viewModel, Guid nodeId)

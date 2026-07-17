@@ -18,6 +18,9 @@ public sealed class CommandHistory
     /// </summary>
     public bool CanRedo => _redoStack.Count > 0;
 
+    /// <summary>撤销或重做可用状态发生变化时引发。</summary>
+    public event EventHandler? Changed;
+
     /// <summary>
     /// 执行新命令并将其加入撤销历史。
     /// </summary>
@@ -28,6 +31,7 @@ public sealed class CommandHistory
         command.Execute();
         _undoStack.Push(command);
         _redoStack.Clear();
+        OnChanged();
     }
 
     /// <summary>
@@ -45,6 +49,7 @@ public sealed class CommandHistory
         command.Undo();
         _undoStack.Pop();
         _redoStack.Push(command);
+        OnChanged();
         return true;
     }
 
@@ -63,6 +68,7 @@ public sealed class CommandHistory
         command.Execute();
         _redoStack.Pop();
         _undoStack.Push(command);
+        OnChanged();
         return true;
     }
 
@@ -73,5 +79,11 @@ public sealed class CommandHistory
     {
         _undoStack.Clear();
         _redoStack.Clear();
+        OnChanged();
+    }
+
+    private void OnChanged()
+    {
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 }

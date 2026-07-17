@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Avalonia;
+using CommandHistory = FlowForge.App.Commands.CommandHistory;
+using CompositeCommand = FlowForge.App.Commands.CompositeCommand;
+using MoveNodeEditCommand = FlowForge.App.Commands.MoveNodeEditCommand;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
@@ -11,11 +14,13 @@ namespace FlowForge.App.ViewModels;
 /// </summary>
 public sealed class CanvasViewModel : ReactiveObject
 {
+    private readonly CommandHistory _commandHistory;
     /// <summary>
     /// 初始化画布 ViewModel。
     /// </summary>
-    public CanvasViewModel()
+    public CanvasViewModel(CommandHistory? commandHistory = null)
     {
+        _commandHistory = commandHistory ?? new CommandHistory();
         MoveNodeCommand = ReactiveCommand.Create<MoveNodeRequest>(MoveNode);
         MoveSelectedNodesCommand = ReactiveCommand.Create<Vector>(MoveSelectedNodes);
         SelectNodeCommand = ReactiveCommand.Create<SelectNodeRequest>(SelectNode);
@@ -105,6 +110,30 @@ public sealed class CanvasViewModel : ReactiveObject
     /// 取消端口连线拖拽的命令。
     /// </summary>
     public ICommand CancelEdgeDragCommand { get; }
+
+    /// <summary>获取画布编辑命令历史。</summary>
+    public CommandHistory CommandHistory => _commandHistory;
+
+    /// <summary>
+    /// 将已完成的一次节点拖动写入命令历史。
+    /// </summary>
+    /// <param name="originalPositions">拖动开始时按节点记录的位置。</param>
+    public void CommitNodeMove(IReadOnlyDictionary<NodeViewModel, Point> originalPositions)
+    {
+        ArgumentNullException.ThrowIfNull(originalPositions);
+        var commands = originalPositions
+            .Where(pair => pair.Key.Position != pair.Value)
+            .Select(pair => (FlowForge.App.Commands.ICommand)new MoveNodeEditCommand(pair.Key, pair.Value, pair.Key.Position))
+            .ToArray();
+        if (commands.Length == 1)
+        {
+            _commandHistory.Execute(commands[0]);
+        }
+        else if (commands.Length > 1)
+        {
+            _commandHistory.Execute(new CompositeCommand(commands));
+        }
+    }
 
     private void MoveNode(MoveNodeRequest request)
     {
