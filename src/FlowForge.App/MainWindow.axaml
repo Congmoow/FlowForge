@@ -22,23 +22,34 @@
                 BorderBrush="#D8DEE8"
                 BorderThickness="0,0,0,1"
                 Padding="20,12">
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
                 <TextBlock Text="{Binding ApplicationName}"
                            FontSize="18"
                            FontWeight="SemiBold"
                            Foreground="#172033"
                            VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1"
+                <Menu Grid.Column="1"
+                      Margin="16,0,0,0"
+                      Background="Transparent">
+                    <MenuItem Header="文件">
+                        <MenuItem Header="新建" Command="{Binding NewCommand}" HotKey="Ctrl+N" />
+                        <MenuItem Header="打开…" Command="{Binding OpenCommand}" HotKey="Ctrl+O" />
+                        <Separator />
+                        <MenuItem Header="保存" Command="{Binding SaveCommand}" HotKey="Ctrl+S" />
+                        <MenuItem Header="另存为…" Command="{Binding SaveAsCommand}" HotKey="Ctrl+Shift+S" />
+                    </MenuItem>
+                </Menu>
+                <TextBlock Grid.Column="2"
                            Text="{Binding StatusMessage}"
                            Foreground="#667085"
                            VerticalAlignment="Center"
                            HorizontalAlignment="Right" />
-                <Button Grid.Column="2"
+                <Button Grid.Column="3"
                         Content="运行"
                         Command="{Binding RunCommand}"
                         Margin="10,0,0,0"
                         Padding="16,6" />
-                <Button Grid.Column="3"
+                <Button Grid.Column="4"
                         Content="停止"
                         Command="{Binding StopCommand}"
                         Margin="10,0,0,0"

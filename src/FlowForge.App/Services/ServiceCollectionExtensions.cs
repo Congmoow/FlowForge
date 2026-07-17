@@ -18,6 +18,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<WorkflowScheduler>();
         services.AddSingleton<IStage3WorkflowRunner, Stage3SampleWorkflowRunner>();
+        services.AddSingleton<IWorkflowFileService, AvaloniaWorkflowFileService>();
         services.AddSingleton<MainWindowViewModel>();
         services.AddTransient<MainWindow>();
 

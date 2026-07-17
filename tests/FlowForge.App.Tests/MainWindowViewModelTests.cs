@@ -1,8 +1,10 @@
 using System.Reactive.Threading.Tasks;
+using System.Text.Json;
 using System.Windows.Input;
 using FlowForge.App.Services;
 using FlowForge.App.ViewModels;
 using FlowForge.Core.Execution;
+using FlowForge.Core.Serialization;
 using FluentAssertions;
 
 namespace FlowForge.App.Tests;
@@ -141,6 +143,72 @@ public sealed class MainWindowViewModelTests
         FindNode(viewModel, CsvNodeId).ExecutionState.Should().Be(NodeExecutionVisualState.Idle);
     }
 
+    [Fact]
+    public async Task NewCommand_ExistingCanvas_ClearsDocumentAndPathAsync()
+    {
+        var files = new FakeWorkflowFileService();
+        var viewModel = new MainWindowViewModel(new FakeStage3WorkflowRunner(), files);
+
+        await viewModel.NewCommand.Execute().ToTask();
+
+        viewModel.Canvas.Nodes.Should().BeEmpty();
+        viewModel.Canvas.Edges.Should().BeEmpty();
+        viewModel.CurrentFilePath.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task OpenCommand_Document_RebuildsCanvasNodesAsync()
+    {
+        var nodeId = Guid.NewGuid();
+        var files = new FakeWorkflowFileService
+        {
+            OpenResult = new WorkflowOpenResult(
+                "sample.ffw",
+                new WorkflowDocument(
+                    new WorkflowMetadata("示例", DateTimeOffset.UnixEpoch, "0.1.0"),
+                    [new WorkflowNodeDocument(nodeId, "core.datasource.text", new WorkflowNodePosition(12, 34), JsonDocument.Parse("{}").RootElement.Clone())],
+                    [])),
+        };
+        var viewModel = new MainWindowViewModel(new FakeStage3WorkflowRunner(), files);
+
+        await viewModel.OpenCommand.Execute().ToTask();
+
+        viewModel.CurrentFilePath.Should().Be("sample.ffw");
+        viewModel.Canvas.Nodes.Should().ContainSingle(node => node.Id == nodeId && node.Position == new Avalonia.Point(12, 34));
+    }
+
+    [Fact]
+    public async Task SaveCommand_CurrentCanvas_PreservesCurrentPathAsync()
+    {
+        var files = new FakeWorkflowFileService
+        {
+            OpenResult = new WorkflowOpenResult(
+                "sample.ffw",
+                new WorkflowDocument(new WorkflowMetadata("示例", DateTimeOffset.UnixEpoch, "0.1.0"), [], [])),
+            SavedPath = "sample.ffw",
+        };
+        var viewModel = new MainWindowViewModel(new FakeStage3WorkflowRunner(), files);
+        await viewModel.OpenCommand.Execute().ToTask();
+
+        await viewModel.SaveCommand.Execute().ToTask();
+
+        files.LastCurrentPath.Should().Be("sample.ffw");
+        files.LastSaveAs.Should().BeFalse();
+        files.LastDocument.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task SaveAsCommand_CurrentCanvas_ForcesPathSelectionAsync()
+    {
+        var files = new FakeWorkflowFileService { SavedPath = "copy.ffw" };
+        var viewModel = new MainWindowViewModel(new FakeStage3WorkflowRunner(), files);
+
+        await viewModel.SaveAsCommand.Execute().ToTask();
+
+        files.LastSaveAs.Should().BeTrue();
+        viewModel.CurrentFilePath.Should().Be("copy.ffw");
+    }
+
     private static NodeViewModel FindNode(MainWindowViewModel viewModel, Guid nodeId)
     {
         return viewModel.Canvas.Nodes.Single(node => node.Id == nodeId);
@@ -168,6 +236,32 @@ public sealed class MainWindowViewModelTests
         public Task RunAsync(IProgress<NodeExecutionEvent> progress, CancellationToken cancellationToken)
         {
             return RunAsyncHandler(progress, cancellationToken);
+        }
+    }
+
+    private sealed class FakeWorkflowFileService : IWorkflowFileService
+    {
+        public WorkflowOpenResult? OpenResult { get; set; }
+
+        public string? SavedPath { get; set; }
+
+        public WorkflowDocument? LastDocument { get; private set; }
+
+        public string? LastCurrentPath { get; private set; }
+
+        public bool LastSaveAs { get; private set; }
+
+        public Task<WorkflowOpenResult?> OpenAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(OpenResult);
+        }
+
+        public Task<string?> SaveAsync(WorkflowDocument document, string? currentPath, bool saveAs, CancellationToken cancellationToken = default)
+        {
+            LastDocument = document;
+            LastCurrentPath = currentPath;
+            LastSaveAs = saveAs;
+            return Task.FromResult(SavedPath ?? currentPath);
         }
     }
 }
