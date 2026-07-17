@@ -1,6 +1,6 @@
 # ADR-0007: Stage 4 持久化与安全契约
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-07-17
 
 ## Context
