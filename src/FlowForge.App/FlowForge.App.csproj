@@ -19,6 +19,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="ReactiveUI" Version="19.5.41" />
     <PackageReference Include="ReactiveUI.Fody" Version="19.5.41" PrivateAssets="All" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
