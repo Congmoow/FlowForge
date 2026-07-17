@@ -16,3 +16,4 @@
 - 新增 CSV/文本数据源、JSON 解析、文本拼接和控制台输出节点，控制台节点支持完整输入流与结构化 JSON 输出。
 - 添加 Run/Stop 命令、节点 idle/running/success/failed 四态高亮，以及预置 CSV→Console 桌面执行入口。
 - 新增 `samples/csv-to-console.ffw`、真实 CSV 数据和端到端集成测试，并接受 ADR-0003 Channel 执行契约。
+- 完成 Stage 4：跨平台密钥存储、OpenAI/DeepSeek 节点、`.ffw` schema v1 与迁移、文件菜单、撤销重做和 CSV 摘要集成样例。
