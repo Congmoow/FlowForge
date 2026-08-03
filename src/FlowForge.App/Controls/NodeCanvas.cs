@@ -12,7 +12,7 @@ namespace FlowForge.App.Controls;
 /// <summary>
 /// 节点画布控件，负责自绘网格和节点。
 /// </summary>
-public sealed class NodeCanvas : Control
+public sealed class NodeCanvas : Control, IDisposable
 {
     private const double NodeWidth = 220;
     private const double NodeHeight = 96;
@@ -45,6 +45,8 @@ public sealed class NodeCanvas : Control
     private bool isPanning;
     private bool isSpacePressed;
     private CanvasViewModel? observedCanvas;
+    private RetainedCanvasScene retainedScene = new();
+    private bool disposed;
 
     /// <summary>
     /// 画布 ViewModel 属性。
@@ -94,6 +96,11 @@ public sealed class NodeCanvas : Control
     public CanvasViewport Viewport { get; } = new();
 
     /// <summary>
+    /// 当前画布的 retained 绘制场景。
+    /// </summary>
+    public RetainedCanvasScene RetainedScene => retainedScene;
+
+    /// <summary>
     /// 获取因 ViewModel 状态变化触发的渲染失效次数。
     /// </summary>
     public int RenderInvalidationVersion { get; private set; }
@@ -129,9 +136,10 @@ public sealed class NodeCanvas : Control
 
             if (Canvas is { Nodes.Count: > 0 } canvas)
             {
-                foreach (var edge in CanvasCulling.CullEdges(canvas.Edges, Viewport.WorldBounds, EdgeStrokeWidth))
+                foreach (var edge in retainedScene.EdgeOperations.Where(operation =>
+                    CanvasCulling.IntersectsIncludingBoundary(operation.Bounds, Viewport.WorldBounds)))
                 {
-                    DrawEdge(context, edge);
+                    context.Custom(edge);
                 }
 
                 if (canvas.DraftEdge is not null)
@@ -139,9 +147,11 @@ public sealed class NodeCanvas : Control
                     DrawEdge(context, canvas.DraftEdge);
                 }
 
-                foreach (var node in CanvasCulling.CullNodes(canvas.Nodes, Viewport.WorldBounds))
+                foreach (var node in retainedScene.NodeOperations.Where(operation =>
+                    CanvasCulling.IntersectsIncludingBoundary(operation.Bounds, Viewport.WorldBounds)))
                 {
-                    DrawNode(context, node);
+                    context.Custom(node);
+                    DrawNodeText(context, node);
                 }
 
                 DrawConnectionPreview(context, canvas);
@@ -345,6 +355,13 @@ public sealed class NodeCanvas : Control
         DrawPorts(context, node);
     }
 
+    private static void DrawNodeText(DrawingContext context, NodeDrawOperation operation)
+    {
+        var bounds = operation.Bounds;
+        context.DrawText(operation.TitleText, new Point(bounds.X + 16, bounds.Y + 9));
+        context.DrawText(operation.BodyText, new Point(bounds.X + 16, bounds.Y + 52));
+    }
+
     private static void DrawNode(
         DrawingContext context,
         Rect node,
@@ -482,6 +499,9 @@ public sealed class NodeCanvas : Control
 
     private void ObserveCanvas(CanvasViewModel? canvas)
     {
+        retainedScene.Dispose();
+        retainedScene = new RetainedCanvasScene();
+
         if (observedCanvas is not null)
         {
             observedCanvas.Nodes.CollectionChanged -= OnNodesChanged;
@@ -505,6 +525,7 @@ public sealed class NodeCanvas : Control
             }
         }
 
+        SyncRetainedScene();
         InvalidateCanvas();
     }
 
@@ -526,6 +547,7 @@ public sealed class NodeCanvas : Control
             }
         }
 
+        SyncRetainedScene();
         InvalidateCanvas();
     }
 
@@ -536,11 +558,13 @@ public sealed class NodeCanvas : Control
 
     private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
+        SyncRetainedScene();
         InvalidateCanvas();
     }
 
     private void OnEdgesChanged(object? sender, NotifyCollectionChangedEventArgs eventArgs)
     {
+        SyncRetainedScene();
         InvalidateCanvas();
     }
 
@@ -553,6 +577,17 @@ public sealed class NodeCanvas : Control
     {
         RenderInvalidationVersion++;
         InvalidateVisual();
+    }
+
+    private void SyncRetainedScene()
+    {
+        if (observedCanvas is null)
+        {
+            retainedScene.Rebuild(Array.Empty<NodeViewModel>(), Array.Empty<EdgeViewModel>());
+            return;
+        }
+
+        retainedScene.Rebuild(observedCanvas.Nodes, observedCanvas.Edges);
     }
 
     /// <summary>
@@ -619,5 +654,31 @@ public sealed class NodeCanvas : Control
             Viewport.Transform.ViewToWorld(e.GetPosition(this))));
         InvalidateVisual();
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// 释放 retained 绘制场景及 ViewModel 事件订阅。
+    /// </summary>
+    public void Dispose()
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        disposed = true;
+        if (observedCanvas is not null)
+        {
+            observedCanvas.Nodes.CollectionChanged -= OnNodesChanged;
+            observedCanvas.Edges.CollectionChanged -= OnEdgesChanged;
+            observedCanvas.PropertyChanged -= OnCanvasPropertyChanged;
+            foreach (var node in observedCanvas.Nodes)
+            {
+                node.PropertyChanged -= OnNodePropertyChanged;
+            }
+        }
+
+        Viewport.Changed -= OnViewportChanged;
+        retainedScene.Dispose();
     }
 }
