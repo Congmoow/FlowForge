@@ -138,7 +138,7 @@ public sealed class NodeCanvas : Control
                     DrawEdge(context, canvas.DraftEdge);
                 }
 
-                foreach (var node in canvas.Nodes)
+                foreach (var node in CanvasCulling.CullNodes(canvas.Nodes, Viewport.WorldBounds))
                 {
                     DrawNode(context, node);
                 }
