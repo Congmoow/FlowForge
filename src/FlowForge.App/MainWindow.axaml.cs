@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using FlowForge.App.Controls;
 using FlowForge.App.ViewModels;
 
 namespace FlowForge.App;
@@ -25,4 +26,10 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = viewModel;
     }
+
+    /// <summary>
+    /// 获取用于开发模式性能采样的真实画布控件。
+    /// </summary>
+    public NodeCanvas CanvasControl => this.FindControl<NodeCanvas>("PerfCanvas")
+        ?? throw new InvalidOperationException("主窗口缺少画布控件。");
 }

@@ -47,6 +47,7 @@ public sealed class NodeCanvas : Control, IDisposable
     private CanvasViewModel? observedCanvas;
     private RetainedCanvasScene retainedScene = new();
     private bool disposed;
+    private long renderFrameCount;
 
     /// <summary>
     /// 画布 ViewModel 属性。
@@ -106,6 +107,11 @@ public sealed class NodeCanvas : Control, IDisposable
     public int RenderInvalidationVersion { get; private set; }
 
     /// <summary>
+    /// 获取控件实际进入 Render 的累计次数，用于性能采样而不参与数据绑定。
+    /// </summary>
+    public long RenderFrameCount => Interlocked.Read(ref renderFrameCount);
+
+    /// <summary>
     /// 返回执行状态对应的节点边框颜色。
     /// </summary>
     /// <param name="state">节点执行状态。</param>
@@ -125,6 +131,7 @@ public sealed class NodeCanvas : Control, IDisposable
     /// <inheritdoc />
     public override void Render(DrawingContext context)
     {
+        Interlocked.Increment(ref renderFrameCount);
         base.Render(context);
 
         var bounds = new Rect(Bounds.Size);
@@ -680,5 +687,13 @@ public sealed class NodeCanvas : Control, IDisposable
 
         Viewport.Changed -= OnViewportChanged;
         retainedScene.Dispose();
+    }
+
+    /// <summary>
+    /// 将性能采样用的 Render 计数清零。
+    /// </summary>
+    public void ResetRenderFrameCount()
+    {
+        Interlocked.Exchange(ref renderFrameCount, 0);
     }
 }
