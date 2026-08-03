@@ -118,6 +118,7 @@
                            Foreground="#243044"
                            Margin="0,0,0,12" />
                 <controls:NodeCanvas MinHeight="360"
+                                     x:Name="PerfCanvas"
                                      Canvas="{Binding Canvas}"
                                      Toolbox="{Binding Toolbox}" />
             </DockPanel>
