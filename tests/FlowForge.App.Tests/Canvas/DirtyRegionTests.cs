@@ -1,0 +1,104 @@
+using Avalonia;
+using Avalonia.Media;
+using FlowForge.App.Canvas;
+using FlowForge.App.Controls;
+using FlowForge.App.ViewModels;
+using FluentAssertions;
+
+namespace FlowForge.App.Tests.Canvas;
+
+public sealed class DirtyRegionTests
+{
+    [Fact]
+    public void NodeDrawOperation_EqualSnapshots_HaveStableEqualityAndCachedResources()
+    {
+        var snapshot = CreateNodeSnapshot(new Rect(10, 20, 220, 96));
+        using var first = new NodeDrawOperation(snapshot);
+        using var second = new NodeDrawOperation(snapshot);
+
+        first.Equals(second).Should().BeTrue();
+        first.GetHashCode().Should().Be(second.GetHashCode());
+        first.TitleText.Should().NotBeNull();
+        first.Bounds.Should().Be(snapshot.Bounds);
+    }
+
+    [Fact]
+    public void DrawOperations_Dispose_IsIdempotentAndMarksOperationDisposed()
+    {
+        using var node = new NodeDrawOperation(CreateNodeSnapshot(new Rect(0, 0, 220, 96)));
+        using var edge = new EdgeDrawOperation(new EdgeDrawSnapshot(
+            Guid.NewGuid(),
+            new Point(0, 10),
+            new Point(100, 10),
+            2));
+
+        node.Dispose();
+        node.Dispose();
+        edge.Dispose();
+        edge.Dispose();
+
+        node.IsDisposed.Should().BeTrue();
+        edge.IsDisposed.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RetainedCanvasScene_ReplaceNode_ReturnsOldAndNewBoundsUnion()
+    {
+        var scene = new RetainedCanvasScene();
+        var nodeId = Guid.NewGuid();
+        scene.ReplaceNode(new NodeDrawOperation(CreateNodeSnapshot(new Rect(10, 20, 220, 96), nodeId)));
+
+        var dirty = scene.ReplaceNode(new NodeDrawOperation(CreateNodeSnapshot(new Rect(30, 20, 220, 96), nodeId)));
+
+        dirty.Should().Be(new Rect(10, 20, 240, 96));
+        scene.NodeOperations.Should().ContainSingle();
+        scene.LastDirtyRect.Should().Be(dirty);
+    }
+
+    [Fact]
+    public void EdgeDrawOperation_BoundsAndHitTest_UseCachedBezierGeometry()
+    {
+        using var operation = new EdgeDrawOperation(new EdgeDrawSnapshot(
+            Guid.NewGuid(),
+            new Point(-80, 32),
+            new Point(80, 32),
+            2));
+
+        operation.Geometry.Should().NotBeNull();
+        operation.Bounds.Should().Be(BezierBounds.GetBounds(
+            operation.Snapshot.StartPoint,
+            operation.Snapshot.EndPoint,
+            operation.Snapshot.StrokeWidth));
+        operation.HitTest(new Point(0, 32)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void NodeCanvas_NodeMove_ReplacesOnlyTheMovedRetainedOperation()
+    {
+        var canvasViewModel = new CanvasViewModel();
+        var node = new NodeViewModel(Guid.NewGuid(), "core.test.node", "节点", 10, 20);
+        canvasViewModel.Nodes.Add(node);
+        var canvas = new NodeCanvas { Canvas = canvasViewModel };
+        var previous = canvas.RetainedScene.NodeOperations.Should().ContainSingle().Subject;
+
+        node.Position = new Point(80, 120);
+
+        var current = canvas.RetainedScene.NodeOperations.Should().ContainSingle().Subject;
+        current.Should().NotBeSameAs(previous);
+        previous.IsDisposed.Should().BeTrue();
+        current.Bounds.Should().Be(CanvasCulling.NodeBounds(node.Position));
+        canvas.RetainedScene.LastDirtyRect.Should().Be(new Rect(10, 20, 290, 196));
+    }
+
+    private static NodeDrawSnapshot CreateNodeSnapshot(Rect bounds, Guid? id = null)
+    {
+        return new NodeDrawSnapshot(
+            id ?? Guid.NewGuid(),
+            bounds,
+            "节点",
+            "core.test.node",
+            Color.Parse("#2563EB"),
+            false,
+            [new Point(bounds.Left, bounds.Top + 32), new Point(bounds.Right, bounds.Top + 32)]);
+    }
+}
