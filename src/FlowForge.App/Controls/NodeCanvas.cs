@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using FlowForge.App.Canvas;
 using FlowForge.App.ViewModels;
 
 namespace FlowForge.App.Controls;
@@ -40,6 +41,8 @@ public sealed class NodeCanvas : Control
     private Dictionary<NodeViewModel, Point>? dragStartPositions;
     private Point lastPointerPosition;
     private bool isDraggingEdge;
+    private bool isPanning;
+    private bool isSpacePressed;
     private CanvasViewModel? observedCanvas;
 
     /// <summary>
@@ -59,9 +62,11 @@ public sealed class NodeCanvas : Control
     /// </summary>
     public NodeCanvas()
     {
+        Focusable = true;
         DragDrop.SetAllowDrop(this, true);
         AddHandler(DragDrop.DropEvent, OnDrop);
         this.GetObservable(CanvasProperty).Subscribe(ObserveCanvas);
+        Viewport.Changed += OnViewportChanged;
     }
 
     /// <summary>
@@ -81,6 +86,11 @@ public sealed class NodeCanvas : Control
         get => GetValue(ToolboxProperty);
         set => SetValue(ToolboxProperty, value);
     }
+
+    /// <summary>
+    /// 当前画布视口。节点位置和连线端点保存在 world 坐标中。
+    /// </summary>
+    public CanvasViewport Viewport { get; } = new();
 
     /// <summary>
     /// 获取因 ViewModel 状态变化触发的渲染失效次数。
@@ -110,32 +120,36 @@ public sealed class NodeCanvas : Control
         base.Render(context);
 
         var bounds = new Rect(Bounds.Size);
+        Viewport.ViewSize = bounds.Size;
         context.FillRectangle(CanvasBackground, bounds);
-        DrawGrid(context, bounds);
-
-        if (Canvas is { Nodes.Count: > 0 } canvas)
+        using (context.PushTransform(Viewport.Transform.WorldToViewMatrix))
         {
-            foreach (var edge in canvas.Edges)
+            DrawGrid(context, Viewport.WorldBounds, Viewport.Transform.Zoom);
+
+            if (Canvas is { Nodes.Count: > 0 } canvas)
             {
-                DrawEdge(context, edge);
+                foreach (var edge in canvas.Edges)
+                {
+                    DrawEdge(context, edge);
+                }
+
+                if (canvas.DraftEdge is not null)
+                {
+                    DrawEdge(context, canvas.DraftEdge);
+                }
+
+                foreach (var node in canvas.Nodes)
+                {
+                    DrawNode(context, node);
+                }
+
+                DrawConnectionPreview(context, canvas);
+
+                return;
             }
 
-            if (canvas.DraftEdge is not null)
-            {
-                DrawEdge(context, canvas.DraftEdge);
-            }
-
-            foreach (var node in canvas.Nodes)
-            {
-                DrawNode(context, node);
-            }
-
-            DrawConnectionPreview(context, canvas);
-
-            return;
+            DrawPlaceholderNode(context);
         }
-
-        DrawPlaceholderNode(context);
     }
 
     private static void DrawEdge(DrawingContext context, EdgeViewModel edge)
@@ -149,18 +163,26 @@ public sealed class NodeCanvas : Control
     {
         base.OnPointerPressed(e);
 
-        if (Canvas is not { } canvas)
-        {
-            return;
-        }
-
         var point = e.GetCurrentPoint(this);
-        if (!point.Properties.IsLeftButtonPressed)
+        var position = e.GetPosition(this);
+        if (point.Properties.PointerUpdateKind == PointerUpdateKind.MiddleButtonPressed
+            || (point.Properties.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed && isSpacePressed))
+        {
+            isPanning = true;
+            lastPointerPosition = position;
+            Focus();
+            e.Pointer.Capture(this);
+            e.Handled = true;
+            return;
+        }
+
+        if (!point.Properties.IsLeftButtonPressed || Canvas is not { } canvas)
         {
             return;
         }
 
-        var position = e.GetPosition(this);
+        Focus();
+        position = Viewport.Transform.ViewToWorld(position);
         var port = FindPortAt(canvas, position);
         var node = FindNodeAt(canvas, position);
         if (ShouldUseAddNodeShortcut(e.KeyModifiers, node is not null, port is not null, Toolbox is not null))
@@ -206,10 +228,20 @@ public sealed class NodeCanvas : Control
 
         if (isDraggingEdge && Canvas is { } edgeCanvas)
         {
-            var position = e.GetPosition(this);
+            var position = Viewport.Transform.ViewToWorld(e.GetPosition(this));
             edgeCanvas.UpdateEdgeDragCommand.Execute(position);
             edgeCanvas.PreviewEdgeTargetCommand.Execute(FindPortAt(edgeCanvas, position));
             InvalidateVisual();
+            e.Handled = true;
+            return;
+        }
+
+        if (isPanning)
+        {
+            var panPosition = e.GetPosition(this);
+            var panDelta = panPosition - lastPointerPosition;
+            Viewport.PanBy(panDelta);
+            lastPointerPosition = panPosition;
             e.Handled = true;
             return;
         }
@@ -235,11 +267,11 @@ public sealed class NodeCanvas : Control
 
         if (isDraggingSelection)
         {
-            canvas.MoveSelectedNodesCommand.Execute(delta);
+            canvas.MoveSelectedNodesCommand.Execute(ToWorldVector(delta));
         }
         else
         {
-            canvas.MoveNodeCommand.Execute(new MoveNodeRequest(nodeId, delta));
+            canvas.MoveNodeCommand.Execute(new MoveNodeRequest(nodeId, ToWorldVector(delta)));
         }
         lastPointerPosition = currentPosition;
         InvalidateVisual();
@@ -251,9 +283,17 @@ public sealed class NodeCanvas : Control
     {
         base.OnPointerReleased(e);
 
+        if (isPanning)
+        {
+            isPanning = false;
+            e.Pointer.Capture(null);
+            e.Handled = true;
+            return;
+        }
+
         if (isDraggingEdge && Canvas is { } canvas)
         {
-            var targetPort = FindPortAt(canvas, e.GetPosition(this));
+            var targetPort = FindPortAt(canvas, Viewport.Transform.ViewToWorld(e.GetPosition(this)));
             if (targetPort is { Direction: PortDirection.Input })
             {
                 canvas.CompleteEdgeDragCommand.Execute(targetPort);
@@ -274,18 +314,21 @@ public sealed class NodeCanvas : Control
         e.Handled = true;
     }
 
-    private static void DrawGrid(DrawingContext context, Rect bounds)
+    private static void DrawGrid(DrawingContext context, Rect bounds, double zoom)
     {
-        const double gridSize = 24;
+        var gridSize = CanvasViewport.GridStepForZoom(zoom);
+        var pen = new Pen(GridPen.Brush, 1 / zoom);
+        var firstX = Math.Floor(bounds.Left / gridSize) * gridSize;
+        var firstY = Math.Floor(bounds.Top / gridSize) * gridSize;
 
-        for (var x = 0d; x <= bounds.Width; x += gridSize)
+        for (var x = firstX; x <= bounds.Right; x += gridSize)
         {
-            context.DrawLine(GridPen, new Point(x, 0), new Point(x, bounds.Height));
+            context.DrawLine(pen, new Point(x, bounds.Top), new Point(x, bounds.Bottom));
         }
 
-        for (var y = 0d; y <= bounds.Height; y += gridSize)
+        for (var y = firstY; y <= bounds.Bottom; y += gridSize)
         {
-            context.DrawLine(GridPen, new Point(0, y), new Point(bounds.Width, y));
+            context.DrawLine(pen, new Point(bounds.Left, y), new Point(bounds.Right, y));
         }
     }
 
@@ -393,6 +436,49 @@ public sealed class NodeCanvas : Control
         return Math.Sqrt(delta.X * delta.X + delta.Y * delta.Y);
     }
 
+    private Vector ToWorldVector(Vector viewVector)
+    {
+        return new Vector(
+            viewVector.X / Viewport.Transform.Zoom,
+            viewVector.Y / Viewport.Transform.Zoom);
+    }
+
+    /// <inheritdoc />
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            return;
+        }
+
+        var factor = Math.Pow(1.1, e.Delta.Y);
+        Viewport.ZoomAt(e.GetPosition(this), Viewport.Transform.Zoom * factor);
+        e.Handled = true;
+    }
+
+    /// <inheritdoc />
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Key == Key.Space)
+        {
+            isSpacePressed = true;
+            e.Handled = true;
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        base.OnKeyUp(e);
+        if (e.Key == Key.Space)
+        {
+            isSpacePressed = false;
+            e.Handled = true;
+        }
+    }
+
     private void ObserveCanvas(CanvasViewModel? canvas)
     {
         if (observedCanvas is not null)
@@ -446,6 +532,11 @@ public sealed class NodeCanvas : Control
     }
 
     private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        InvalidateCanvas();
+    }
+
+    private void OnViewportChanged(object? sender, EventArgs eventArgs)
     {
         InvalidateCanvas();
     }
@@ -515,7 +606,9 @@ public sealed class NodeCanvas : Control
         }
 
         var template = e.Data.Get(ToolboxListBox.DragNodeTemplateFormat) as NodeTemplateViewModel ?? toolbox.SelectedTemplate;
-        canvas.AddNodeFromTemplateCommand.Execute(new AddNodeFromTemplateRequest(template, e.GetPosition(this)));
+        canvas.AddNodeFromTemplateCommand.Execute(new AddNodeFromTemplateRequest(
+            template,
+            Viewport.Transform.ViewToWorld(e.GetPosition(this))));
         InvalidateVisual();
         e.Handled = true;
     }
