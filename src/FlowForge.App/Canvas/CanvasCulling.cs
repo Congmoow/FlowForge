@@ -45,6 +45,27 @@ public static class CanvasCulling
             .ToArray();
     }
 
+    /// <summary>
+    /// 按贝塞尔 world bounds 返回与视口相交的连线，边界相切也视为可见。
+    /// </summary>
+    /// <param name="edges">待剔除的连线集合。</param>
+    /// <param name="viewport">world 视口矩形。</param>
+    /// <param name="strokeWidth">连线描边宽度。</param>
+    /// <returns>可见连线的只读列表。</returns>
+    public static IReadOnlyList<EdgeViewModel> CullEdges(
+        IEnumerable<EdgeViewModel> edges,
+        Rect viewport,
+        double strokeWidth)
+    {
+        ArgumentNullException.ThrowIfNull(edges);
+
+        return edges
+            .Where(edge => IntersectsIncludingBoundary(
+                BezierBounds.GetBounds(edge.StartPoint, edge.EndPoint, strokeWidth),
+                viewport))
+            .ToArray();
+    }
+
     /// <summary>判断两个矩形是否相交或边界相切。</summary>
     /// <param name="first">第一个矩形。</param>
     /// <param name="second">第二个矩形。</param>

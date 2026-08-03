@@ -107,4 +107,24 @@ public sealed class NodeCanvasTests
 
         canvas.RenderInvalidationVersion.Should().BeGreaterThan(versionBefore);
     }
+
+    [Fact]
+    public void Canvas_EdgeCollectionChanges_TriggersRenderInvalidation()
+    {
+        var canvasViewModel = new CanvasViewModel();
+        var sourceNode = new NodeViewModel(Guid.NewGuid(), "source", "源", 10, 20);
+        var targetNode = new NodeViewModel(Guid.NewGuid(), "target", "目标", 300, 20);
+        var source = new PortViewModel(sourceNode, "out", "输出", PortDirection.Output, typeof(string), 0);
+        var target = new PortViewModel(targetNode, "in", "输入", PortDirection.Input, typeof(string), 0);
+        sourceNode.Outputs.Add(source);
+        targetNode.Inputs.Add(target);
+        canvasViewModel.Nodes.Add(sourceNode);
+        canvasViewModel.Nodes.Add(targetNode);
+        var canvas = new NodeCanvas { Canvas = canvasViewModel };
+        var versionBefore = canvas.RenderInvalidationVersion;
+
+        canvasViewModel.Edges.Add(new EdgeViewModel(Guid.NewGuid(), source, target));
+
+        canvas.RenderInvalidationVersion.Should().BeGreaterThan(versionBefore);
+    }
 }
