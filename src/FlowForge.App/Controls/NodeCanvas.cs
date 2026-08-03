@@ -19,13 +19,14 @@ public sealed class NodeCanvas : Control
     private const double NodeHeaderHeight = 32;
     private const double PortRadius = 5;
     private const double PortHitRadius = 10;
+    private const double EdgeStrokeWidth = 2;
 
     private static readonly IBrush CanvasBackground = new SolidColorBrush(Color.Parse("#F8FAFC"));
     private static readonly Pen GridPen = new(new SolidColorBrush(Color.Parse("#E2E8F0")), 1);
     private static readonly IBrush NodeFill = new SolidColorBrush(Color.Parse("#FFFFFF"));
     private static readonly IBrush PortFill = new SolidColorBrush(Color.Parse("#2563EB"));
     private static readonly Pen PortStroke = new(new SolidColorBrush(Color.Parse("#FFFFFF")), 1.5);
-    private static readonly Pen EdgePen = new(new SolidColorBrush(Color.Parse("#64748B")), 2);
+    private static readonly Pen EdgePen = new(new SolidColorBrush(Color.Parse("#64748B")), EdgeStrokeWidth);
     private static readonly IBrush IncompatibleFill = new SolidColorBrush(Color.Parse("#DC2626"));
     private static readonly Pen IncompatibleStroke = new(new SolidColorBrush(Color.Parse("#FFFFFF")), 1.5);
     private static readonly IBrush HeaderFill = new SolidColorBrush(Color.Parse("#EFF6FF"));
@@ -128,7 +129,7 @@ public sealed class NodeCanvas : Control
 
             if (Canvas is { Nodes.Count: > 0 } canvas)
             {
-                foreach (var edge in canvas.Edges)
+                foreach (var edge in CanvasCulling.CullEdges(canvas.Edges, Viewport.WorldBounds, EdgeStrokeWidth))
                 {
                     DrawEdge(context, edge);
                 }
@@ -484,6 +485,7 @@ public sealed class NodeCanvas : Control
         if (observedCanvas is not null)
         {
             observedCanvas.Nodes.CollectionChanged -= OnNodesChanged;
+            observedCanvas.Edges.CollectionChanged -= OnEdgesChanged;
             observedCanvas.PropertyChanged -= OnCanvasPropertyChanged;
             foreach (var node in observedCanvas.Nodes)
             {
@@ -495,6 +497,7 @@ public sealed class NodeCanvas : Control
         if (observedCanvas is not null)
         {
             observedCanvas.Nodes.CollectionChanged += OnNodesChanged;
+            observedCanvas.Edges.CollectionChanged += OnEdgesChanged;
             observedCanvas.PropertyChanged += OnCanvasPropertyChanged;
             foreach (var node in observedCanvas.Nodes)
             {
@@ -532,6 +535,11 @@ public sealed class NodeCanvas : Control
     }
 
     private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        InvalidateCanvas();
+    }
+
+    private void OnEdgesChanged(object? sender, NotifyCollectionChangedEventArgs eventArgs)
     {
         InvalidateCanvas();
     }
