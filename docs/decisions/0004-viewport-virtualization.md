@@ -23,10 +23,10 @@ world/view 坐标模型。仅在绘制阶段 PushClip 或保存待处理矩形�
   区域。每个可见节点和连线由独立的 retained 子 visual 承载，并启用
   `CompositionOptions.UseRegionDirtyRectClipping`。
 - Avalonia 11.2.3 没有 `InvalidateVisual(Rect)` API；`IRenderer.SceneInvalidated`
-  是 render-root 级通知，不能被解释成局部区域 API。使用
-  `RendererDebugOverlays.DirtyRects` 打开 renderer 诊断，并读取同一 renderer
-  的实际 dirty tracker 记录验证底层局部更新，不使用 PushClip、pending rect 或
-  `RetainedCanvasScene.LastDirtyRect` 冒充 renderer 证据。
+  是 render-root 级通知，不能被解释成局部区域 API。`RendererDebugOverlays.DirtyRects`
+  只能打开可视诊断覆盖层，公开 API 不提供可编程读取内部 dirty tracker 的接口；
+  因此不使用 PushClip、pending rect 或 `RetainedCanvasScene.LastDirtyRect` 冒充
+  renderer 证据。
 - 视口算法和 operation 使用无头单元测试；真实 dirty rect 与 1000 节点帧率只在
   Avalonia renderer/Release dev-perf 场景中测量，不在单元测试中伪造 FPS。
 
@@ -34,8 +34,9 @@ world/view 坐标模型。仅在绘制阶段 PushClip 或保存待处理矩形�
 
 - Positive: 坐标转换、命中、剔除和绘制边界共享一套可测试规则；无关节点和边不进入
   当前帧场景，节点局部变化不必重建整幅 retained scene。
-- Positive: retained 子 visual 的 renderer dirty tracker 具有局部观测证据，便于
-  发现整画布失效回退；公开 `SceneInvalidated` 的 root 级边界也被明确记录。
+- Positive: retained 子 visual 的操作、bounds union 和生命周期具有可复现的代码与
+  单元测试边界；公开 `SceneInvalidated` 的 root 级限制也被明确记录，便于后续接入
+  平台级 renderer 诊断。
 - Negative: Avalonia 11.2.3 没有可直接使用的 `InvalidateVisual(Rect)` API，需要在
   retained operation 与 renderer invalidation 边界上实现和验证局部更新。
 - Trade-offs: operation 快照和 Geometry 缓存会增加生命周期管理复杂度，但换取稳定
@@ -47,10 +48,10 @@ world/view 坐标模型。仅在绘制阶段 PushClip 或保存待处理矩形�
 `BezierBoundsTests.cs` 和 `DirtyRegionTests.cs`，以及
 `docs/perf/fps-vs-node-count.html` 中记录的 Release 窗口测量。
 
-2026-08-04 的真实 renderer smoke 使用 1200 × 760 窗口、DPI 2 和独立节点
-retained 子 visual：`IRenderer.SceneInvalidated.DirtyRect` 报告 1200 × 760，
-这是 Avalonia 11.2.3 的 render-root 通知边界；同一 renderer 的内部 dirty
-tracker 在节点移动时记录了旧区域 200,240,440 × 192 与新区域 280,300,440 × 192，
-均小于整画布。`RendererDebugOverlays.DirtyRects` 已启用用于该 renderer 诊断。
-该证据证明实际子 visual 失效没有退化为待处理矩形或 PushClip 推测，同时明确
-公开事件不能单独证明局部区域，因此保留该框架边界作为本决策的限制。
+当前仓库可复现的证据为上述三个无头测试、retained visual 的 world bounds 布局
+测试和 `docs/perf/` 中的 Release 性能 JSON。仓库没有提交 renderer smoke 的
+运行器、内部 dirty tracker 日志或 `RendererDebugOverlays.DirtyRects` 截图；因此
+不能从干净 checkout 声称“单节点变化的实际 renderer dirty rect 小于整画布”已经
+被验证。`SceneInvalidated.DirtyRect` 若在窗口运行中被采集，只能作为 root 级通知
+记录，不能单独证明局部重绘。后续若要完成该证据，应在受支持的 Avalonia renderer
+诊断入口中提交可重放的窗口测量和原始输出。
