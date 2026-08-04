@@ -14,6 +14,7 @@ public sealed class NodeDrawOperation : ICustomDrawOperation
     private static readonly IImmutableBrush HeaderFill = new ImmutableSolidColorBrush(Color.Parse("#EFF6FF"));
     private static readonly IImmutableBrush PortFill = new ImmutableSolidColorBrush(Color.Parse("#2563EB"));
     private static readonly ImmutablePen PortPen = CreatePen(Color.Parse("#FFFFFF"), 1.5);
+    private static BoxShadows EmptyBoxShadows => default;
     private readonly ImmutablePen borderPen;
     private readonly ImmutablePen selectedBorderPen;
     private bool disposed;
@@ -68,8 +69,8 @@ public sealed class NodeDrawOperation : ICustomDrawOperation
         ObjectDisposedException.ThrowIf(disposed, this);
 
         var header = new Rect(Bounds.X, Bounds.Y, Bounds.Width, 32);
-        context.DrawRectangle(Fill, Snapshot.IsSelected ? selectedBorderPen : borderPen, Bounds, 8, 8, new BoxShadows());
-        context.DrawRectangle(HeaderFill, null, header, 8, 8, new BoxShadows());
+        context.DrawRectangle(Fill, Snapshot.IsSelected ? selectedBorderPen : borderPen, Bounds, 8, 8, EmptyBoxShadows);
+        context.DrawRectangle(HeaderFill, null, header, 8, 8, EmptyBoxShadows);
         foreach (var point in Snapshot.PortPoints)
         {
             context.DrawEllipse(PortFill, PortPen, point, 5, 5);
