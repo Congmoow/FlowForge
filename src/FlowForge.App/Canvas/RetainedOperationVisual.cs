@@ -25,8 +25,9 @@ public sealed class RetainedOperationVisual : Control, IDisposable
         this.operation = operation ?? throw new ArgumentNullException(nameof(operation));
         this.transform = transform;
         OperationId = ResolveOperationId(operation);
-        ViewBounds = transform.WorldToView(operation.Bounds);
-        localOperation = new LocalOperation(operation, transform.Zoom);
+        WorldBounds = operation.Bounds;
+        ViewBounds = transform.WorldToView(WorldBounds);
+        localOperation = new LocalOperation(operation, 1);
         IsHitTestVisible = false;
     }
 
@@ -36,8 +37,28 @@ public sealed class RetainedOperationVisual : Control, IDisposable
     /// <summary>当前承载的 retained operation。</summary>
     public ICustomDrawOperation Operation => operation;
 
+    /// <summary>操作在 world 坐标中的紧边界。</summary>
+    public Rect WorldBounds { get; private set; }
+
     /// <summary>操作在画布 view 坐标中的紧边界。</summary>
     public Rect ViewBounds { get; private set; }
+
+    /// <summary>
+    /// 只更新视口变换，不替换 operation 或触发子 visual 重绘。
+    /// </summary>
+    /// <param name="nextTransform">新的 world/view 变换。</param>
+    public void ApplyViewportTransform(ViewportTransform nextTransform)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        var nextViewBounds = nextTransform.WorldToView(WorldBounds);
+        if (transform == nextTransform && ViewBounds == nextViewBounds)
+        {
+            return;
+        }
+
+        transform = nextTransform;
+        ViewBounds = nextViewBounds;
+    }
 
     /// <summary>
     /// 替换 operation 或更新坐标变换，并只使当前子 visual 失效。
@@ -49,25 +70,29 @@ public sealed class RetainedOperationVisual : Control, IDisposable
         ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentNullException.ThrowIfNull(nextOperation);
 
-        var nextBounds = nextTransform.WorldToView(nextOperation.Bounds);
-        if (ReferenceEquals(operation, nextOperation)
-            && transform == nextTransform
-            && ViewBounds == nextBounds)
+        var operationChanged = !ReferenceEquals(operation, nextOperation);
+        var nextWorldBounds = nextOperation.Bounds;
+        if (!operationChanged && WorldBounds == nextWorldBounds)
         {
+            ApplyViewportTransform(nextTransform);
             return;
         }
 
         operation = nextOperation;
-        transform = nextTransform;
-        ViewBounds = nextBounds;
-        localOperation = new LocalOperation(nextOperation, nextTransform.Zoom);
+        WorldBounds = nextWorldBounds;
+        ApplyViewportTransform(nextTransform);
+        if (operationChanged)
+        {
+            localOperation = new LocalOperation(nextOperation, 1);
+        }
+
         InvalidateVisual();
     }
 
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)
     {
-        return ViewBounds.Size;
+        return WorldBounds.Size;
     }
 
     /// <inheritdoc />
@@ -81,11 +106,8 @@ public sealed class RetainedOperationVisual : Control, IDisposable
             return;
         }
 
-        using (context.PushTransform(new Matrix(transform.Zoom, 0, 0, transform.Zoom, 0, 0)))
-        {
-            context.DrawText(node.TitleText, new Point(16, 9));
-            context.DrawText(node.BodyText, new Point(16, 52));
-        }
+        context.DrawText(node.TitleText, new Point(16, 9));
+        context.DrawText(node.BodyText, new Point(16, 52));
     }
 
     /// <summary>释放子 visual 持有的局部 operation 包装。</summary>

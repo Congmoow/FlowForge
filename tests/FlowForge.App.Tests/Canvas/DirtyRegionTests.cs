@@ -109,10 +109,26 @@ public sealed class DirtyRegionTests
 
         var after = canvas.RetainedVisuals
             .ToDictionary(visual => visual.OperationId);
+        canvas.RetainedScene.NodeOperations
+            .Single(operation => operation.Snapshot.Id == movedNode.Id)
+            .Bounds.Should().Be(new Rect(80, 120, 220, 96));
+        after[movedNode.Id].Operation.Bounds.Should().Be(new Rect(80, 120, 220, 96));
         after[movedNode.Id].Should().BeSameAs(before[movedNode.Id]);
         after[movedNode.Id].ViewBounds.Should().Be(new Rect(80, 120, 220, 96));
         after[unchangedNode.Id].Should().BeSameAs(before[unchangedNode.Id]);
         after[unchangedNode.Id].ViewBounds.Should().Be(before[unchangedNode.Id].ViewBounds);
+    }
+
+    [Fact]
+    public void RetainedOperationVisual_ViewportTransform_UpdatesBoundsWithoutReplacingOperation()
+    {
+        using var operation = new NodeDrawOperation(CreateNodeSnapshot(new Rect(0, 0, 220, 96)));
+        using var visual = new RetainedOperationVisual(operation, new ViewportTransform());
+
+        visual.ApplyViewportTransform(new ViewportTransform(2, new Vector(5, 7)));
+
+        visual.Operation.Should().BeSameAs(operation);
+        visual.ViewBounds.Should().Be(new Rect(-10, -14, 440, 192));
     }
 
     private static NodeDrawSnapshot CreateNodeSnapshot(Rect bounds, Guid? id = null)
