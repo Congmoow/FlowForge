@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\FlowForge.Core\FlowForge.Core.csproj" />
+    <ProjectReference Include="..\..\benchmarks\FlowForge.Benchmarks\FlowForge.Benchmarks.csproj" />
   </ItemGroup>
 
 </Project>
