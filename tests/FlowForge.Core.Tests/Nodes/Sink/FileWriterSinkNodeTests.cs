@@ -1,4 +1,6 @@
+using System.Runtime.CompilerServices;
 using System.Text;
+using FlowForge.Core.Abstractions;
 using FluentAssertions;
 using FlowForge.Core.Nodes.Sink;
 
@@ -40,6 +42,46 @@ public sealed class FileWriterSinkNodeTests
             var bytes = await File.ReadAllBytesAsync(path);
             (bytes.Length >= 3 && bytes[..3].SequenceEqual(new byte[] { 0xEF, 0xBB, 0xBF })).Should().BeFalse();
             Encoding.UTF8.GetString(bytes).Should().Be("第一\n第二");
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_MultipleValues_HoldsOneWriteHandleForEntireStreamAsync()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var directory = Directory.CreateTempSubdirectory("flowforge-writer-");
+        try
+        {
+            var path = Path.Combine(directory.FullName, "output.txt");
+            var node = new FileWriterSinkNode(new FileWriterSinkNodeConfig(path));
+            var context = new BlockingStreamExecutionContext(node.ContentInput);
+            var execution = node.ExecuteAsync(context, CancellationToken.None).AsTask();
+
+            try
+            {
+                await context.FirstValueConsumed.Task.WaitAsync(TimeSpan.FromSeconds(3));
+
+                var openAttempt = () =>
+                {
+                    using var stream = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.Read);
+                };
+                openAttempt.Should().Throw<IOException>();
+            }
+            finally
+            {
+                context.ReleaseSecondValue.TrySetResult();
+                await execution;
+            }
+
+            (await File.ReadAllTextAsync(path, new UTF8Encoding(false))).Should().Be("第一第二");
         }
         finally
         {
@@ -123,6 +165,44 @@ public sealed class FileWriterSinkNodeTests
         finally
         {
             directory.Delete(recursive: true);
+        }
+    }
+
+    private sealed class BlockingStreamExecutionContext(IPort<string> contentPort) : IExecutionContext
+    {
+        public TaskCompletionSource FirstValueConsumed { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource ReleaseSecondValue { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public ValueTask<T?> ReadAsync<T>(IPort<T> port, CancellationToken ct)
+        {
+            throw new NotSupportedException();
+        }
+
+        public IAsyncEnumerable<T?> ReadAllAsync<T>(IPort<T> port, CancellationToken ct)
+        {
+            if (!ReferenceEquals(port, contentPort))
+            {
+                throw new InvalidOperationException("测试上下文收到了未知输入端口。");
+            }
+
+            return ReadValuesAsync<T>(ct);
+        }
+
+        public ValueTask WriteAsync<T>(IPort<T> port, T? value, CancellationToken ct)
+        {
+            throw new NotSupportedException();
+        }
+
+        private async IAsyncEnumerable<T?> ReadValuesAsync<T>(
+            [EnumeratorCancellation] CancellationToken ct)
+        {
+            yield return (T?)(object?)"第一";
+            FirstValueConsumed.TrySetResult();
+            await ReleaseSecondValue.Task.WaitAsync(ct);
+            yield return (T?)(object?)"第二";
         }
     }
 }
