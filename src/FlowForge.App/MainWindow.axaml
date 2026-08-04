@@ -143,9 +143,24 @@
                            FontWeight="SemiBold"
                            Foreground="#243044"
                            Margin="0,0,0,12" />
-                <TextBlock Text="选中节点后会显示可编辑配置。"
-                           TextWrapping="Wrap"
-                           Foreground="#667085" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding PropertyPanel.Fields}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ConfigFieldViewModel">
+                                <StackPanel Spacing="5"
+                                            Margin="0,0,0,12">
+                                    <TextBlock Text="{Binding Label}"
+                                               FontWeight="SemiBold"
+                                               Foreground="#243044" />
+                                    <controls:ConfigFieldEditor Field="{Binding}" />
+                                    <TextBlock Text="{Binding ErrorMessage}"
+                                               Foreground="#DC2626"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </DockPanel>
         </Border>
     </Grid>

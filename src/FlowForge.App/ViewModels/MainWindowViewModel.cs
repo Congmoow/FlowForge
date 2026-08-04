@@ -5,6 +5,7 @@ using System.Text.Json;
 using FlowForge.App.Commands;
 using FlowForge.App.Diagnostics;
 using FlowForge.App.Services;
+using FlowForge.Core.Abstractions;
 using FlowForge.Core.Execution;
 using FlowForge.Core.Graph;
 using FlowForge.Core.Serialization;
@@ -69,12 +70,23 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     /// <param name="workflowRunner">执行当前画布工作流的运行器。</param>
     /// <param name="workflowFileService">工作流文件服务。</param>
     /// <param name="nodeRegistry">统一节点目录。</param>
+    /// <param name="secretStore">可选的密钥存储。</param>
+    /// <param name="filePickerService">可选的文件选择服务。</param>
     [ActivatorUtilitiesConstructor]
     public MainWindowViewModel(
         IWorkflowRunner workflowRunner,
         IWorkflowFileService workflowFileService,
-        NodeRegistry nodeRegistry)
-        : this(workflowRunner, null, workflowFileService, nodeRegistry, legacyMode: false)
+        NodeRegistry nodeRegistry,
+        ISecretStore? secretStore = null,
+        IFilePickerService? filePickerService = null)
+        : this(
+            workflowRunner,
+            null,
+            workflowFileService,
+            nodeRegistry,
+            legacyMode: false,
+            secretStore,
+            filePickerService)
     {
     }
 
@@ -93,7 +105,9 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         IStage3WorkflowRunner? legacyWorkflowRunner,
         IWorkflowFileService workflowFileService,
         NodeRegistry nodeRegistry,
-        bool legacyMode)
+        bool legacyMode,
+        ISecretStore? secretStore = null,
+        IFilePickerService? filePickerService = null)
     {
         ArgumentNullException.ThrowIfNull(workflowFileService);
         ArgumentNullException.ThrowIfNull(nodeRegistry);
@@ -113,7 +127,10 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         this.nodeRegistry = nodeRegistry;
         Canvas = new CanvasViewModel(commandHistory, nodeRegistry);
         Toolbox = new ToolboxViewModel(nodeRegistry);
-        PropertyPanel = new PropertyPanelViewModel(Canvas);
+        PropertyPanel = new PropertyPanelViewModel(
+            Canvas,
+            secretStore: secretStore,
+            filePickerService: filePickerService);
         if (legacyMode)
         {
             SeedLegacyCanvas();
