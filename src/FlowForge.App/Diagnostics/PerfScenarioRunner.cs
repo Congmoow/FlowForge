@@ -75,11 +75,6 @@ public static class PerfScenarioRunner
             (elapsed, frameCount) =>
             {
                 var interval = elapsed - lastSampleTimestamp;
-                if (interval < options.SampleInterval && elapsed < options.Duration)
-                {
-                    return;
-                }
-
                 var renderedFrames = frameCount - lastFrameCount;
                 var seconds = Math.Max(interval.TotalSeconds, double.Epsilon);
                 var perfSample = new PerfSample(
