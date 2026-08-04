@@ -124,6 +124,7 @@ public partial class App : Application
             viewModel.PerfHud.Complete(result);
             if (!string.IsNullOrWhiteSpace(options.ScreenshotPath))
             {
+                mainWindow.CanvasControl.Viewport.Reset();
                 PerfScreenshotExporter.Save(window, options.ScreenshotPath);
             }
             Trace.WriteLine(
