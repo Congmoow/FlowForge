@@ -32,5 +32,21 @@ jobs:
       - name: 代码分析
         run: dotnet build FlowForge.sln --configuration Release --no-restore -p:EnforceCodeStyleInBuild=true -warnaserror
 
-      - name: 测试
-        run: dotnet test FlowForge.sln --configuration Release --no-build
+      - name: 测试并收集 Cobertura 覆盖率
+        run: >-
+          dotnet test FlowForge.sln --configuration Release --no-build
+          --settings coverage.runsettings
+          --collect "XPlat Code Coverage"
+          --results-directory artifacts/coverage
+
+      - name: 校验 ViewModels 覆盖率门禁
+        shell: pwsh
+        run: .\eng\verify-viewmodel-coverage.ps1 -CoverageRoot artifacts/coverage -MinimumPercent 93.08
+
+      - name: 上传 Cobertura 覆盖率产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-cobertura
+          path: artifacts/coverage
+          if-no-files-found: error
