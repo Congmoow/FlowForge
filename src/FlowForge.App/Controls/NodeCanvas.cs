@@ -50,7 +50,7 @@ public sealed class NodeCanvas : Panel, IDisposable
     private readonly Dictionary<Guid, RetainedOperationVisual> nodeVisuals = [];
     private readonly Dictionary<Guid, RetainedOperationVisual> edgeVisuals = [];
     private readonly CanvasBackgroundVisual backgroundVisual;
-    private readonly Panel sceneLayer;
+    private readonly Avalonia.Controls.Canvas sceneLayer;
     private bool disposed;
     private long renderFrameCount;
 
@@ -78,7 +78,7 @@ public sealed class NodeCanvas : Panel, IDisposable
             IsHitTestVisible = false,
             ZIndex = -1,
         };
-        sceneLayer = new Panel
+        sceneLayer = new Avalonia.Controls.Canvas
         {
             ClipToBounds = false,
             IsHitTestVisible = false,
@@ -661,6 +661,8 @@ public sealed class NodeCanvas : Panel, IDisposable
         foreach (var visual in nodeVisuals.Values.Concat(edgeVisuals.Values))
         {
             visual.ApplyViewportTransform(Viewport.Transform);
+            Avalonia.Controls.Canvas.SetLeft(visual, visual.WorldBounds.Left);
+            Avalonia.Controls.Canvas.SetTop(visual, visual.WorldBounds.Top);
         }
 
         sceneLayer.RenderTransform = new MatrixTransform(Viewport.Transform.WorldToViewMatrix);

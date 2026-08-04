@@ -120,6 +120,32 @@ public sealed class DirtyRegionTests
     }
 
     [Fact]
+    public void NodeCanvas_RetainedVisuals_AreArrangedAtTheirWorldBounds()
+    {
+        var canvasViewModel = new CanvasViewModel();
+        var firstNode = new NodeViewModel(Guid.NewGuid(), "core.test.first", "第一个节点", 10, 20);
+        var secondNode = new NodeViewModel(Guid.NewGuid(), "core.test.second", "第二个节点", 400, 120);
+        canvasViewModel.Nodes.Add(firstNode);
+        canvasViewModel.Nodes.Add(secondNode);
+        using var canvas = new NodeCanvas { Canvas = canvasViewModel };
+
+        canvas.Measure(new Size(800, 600));
+        canvas.Arrange(new Rect(0, 0, 800, 600));
+
+        var firstVisual = canvas.RetainedVisuals.Single(visual => visual.OperationId == firstNode.Id);
+        var secondVisual = canvas.RetainedVisuals.Single(visual => visual.OperationId == secondNode.Id);
+        Avalonia.Controls.Canvas.GetLeft(firstVisual).Should().Be(10);
+        Avalonia.Controls.Canvas.GetTop(firstVisual).Should().Be(20);
+        Avalonia.Controls.Canvas.GetLeft(secondVisual).Should().Be(400);
+        Avalonia.Controls.Canvas.GetTop(secondVisual).Should().Be(120);
+
+        firstNode.Position = new Point(80, 160);
+
+        Avalonia.Controls.Canvas.GetLeft(firstVisual).Should().Be(80);
+        Avalonia.Controls.Canvas.GetTop(firstVisual).Should().Be(160);
+    }
+
+    [Fact]
     public void RetainedOperationVisual_ViewportTransform_UpdatesBoundsWithoutReplacingOperation()
     {
         using var operation = new NodeDrawOperation(CreateNodeSnapshot(new Rect(0, 0, 220, 96)));
