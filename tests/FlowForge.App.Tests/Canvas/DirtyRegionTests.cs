@@ -2,6 +2,10 @@ using Avalonia;
 using Avalonia.Media;
 using FlowForge.App.Canvas;
 using FlowForge.App.Controls;
+using FlowForge.Core.Abstractions;
+using FlowForge.Core.Nodes.DataSource;
+using FlowForge.Core.Nodes.Sink;
+using FlowForge.Core.Serialization;
 using FlowForge.App.ViewModels;
 using FluentAssertions;
 
@@ -53,6 +57,28 @@ public sealed class DirtyRegionTests
         dirty.Should().Be(new Rect(10, 20, 240, 96));
         scene.NodeOperations.Should().ContainSingle();
         scene.LastDirtyRect.Should().Be(dirty);
+    }
+
+    [Fact]
+    public void RetainedCanvasScene_UpdateNode_ReplacesOnlyRequestedOperation()
+    {
+        var scene = new RetainedCanvasScene();
+        var movedNode = new NodeViewModel(Guid.NewGuid(), "core.test.moved", "移动节点", 10, 20);
+        var unchangedNode = new NodeViewModel(Guid.NewGuid(), "core.test.unchanged", "未移动节点", 400, 20);
+        scene.Rebuild([movedNode, unchangedNode], []);
+        var previousMoved = scene.NodeOperations.Single(operation => operation.Snapshot.Id == movedNode.Id);
+        var previousUnchanged = scene.NodeOperations.Single(operation => operation.Snapshot.Id == unchangedNode.Id);
+
+        movedNode.Position = new Point(80, 120);
+
+        var dirty = scene.UpdateNode(movedNode);
+
+        dirty.Should().Be(new Rect(10, 20, 290, 196));
+        var currentMoved = scene.NodeOperations.Single(operation => operation.Snapshot.Id == movedNode.Id);
+        currentMoved.Should().NotBeSameAs(previousMoved);
+        previousMoved.IsDisposed.Should().BeTrue();
+        scene.NodeOperations.Single(operation => operation.Snapshot.Id == unchangedNode.Id)
+            .Should().BeSameAs(previousUnchanged);
     }
 
     [Fact]
@@ -120,6 +146,60 @@ public sealed class DirtyRegionTests
     }
 
     [Fact]
+    public void NodeCanvas_NodeMove_ReplacesAssociatedEdgeOperationOnly()
+    {
+        var registry = NodeRegistry.CreateDefault();
+        var sourceDefinition = registry.GetDefinition("core.datasource.text");
+        var targetDefinition = registry.GetDefinition("core.sink.console");
+        var source = new NodeViewModel(
+            sourceDefinition.Create(Guid.NewGuid(), new TextDataSourceConfig("input.txt")),
+            sourceDefinition,
+            new Point(10, 20));
+        var target = new NodeViewModel(
+            targetDefinition.Create(Guid.NewGuid(), new ConsoleSinkNodeConfig()),
+            targetDefinition,
+            new Point(400, 20));
+        var edge = new EdgeViewModel(
+            Guid.NewGuid(),
+            source.Outputs.Single(port => port.Id == "content"),
+            target.Inputs.Single(port => port.Id == "value"));
+        var canvasViewModel = new CanvasViewModel(registry);
+        canvasViewModel.Nodes.Add(source);
+        canvasViewModel.Nodes.Add(target);
+        canvasViewModel.Edges.Add(edge);
+        using var canvas = new NodeCanvas { Canvas = canvasViewModel };
+
+        var previousEdge = canvas.RetainedScene.EdgeOperations.Should().ContainSingle().Subject;
+        var unchangedTarget = canvas.RetainedScene.NodeOperations
+            .Single(operation => operation.Snapshot.Id == target.Id);
+
+        source.Position = new Point(80, 120);
+
+        var currentEdge = canvas.RetainedScene.EdgeOperations.Should().ContainSingle().Subject;
+        currentEdge.Should().NotBeSameAs(previousEdge);
+        previousEdge.IsDisposed.Should().BeTrue();
+        canvas.RetainedScene.NodeOperations
+            .Single(operation => operation.Snapshot.Id == target.Id)
+            .Should().BeSameAs(unchangedTarget);
+    }
+
+    [Fact]
+    public void NodeCanvas_NonVisualConfigChange_DoesNotInvalidateRetainedScene()
+    {
+        var canvasViewModel = new CanvasViewModel();
+        var node = new NodeViewModel(Guid.NewGuid(), "core.test.node", "节点", 10, 20);
+        canvasViewModel.Nodes.Add(node);
+        using var canvas = new NodeCanvas { Canvas = canvasViewModel };
+        var operation = canvas.RetainedScene.NodeOperations.Should().ContainSingle().Subject;
+        var invalidationVersion = canvas.RenderInvalidationVersion;
+
+        node.Config = new TestConfig();
+
+        canvas.RetainedScene.NodeOperations.Should().ContainSingle().Which.Should().BeSameAs(operation);
+        canvas.RenderInvalidationVersion.Should().Be(invalidationVersion);
+    }
+
+    [Fact]
     public void NodeCanvas_RetainedVisuals_AreArrangedAtTheirWorldBounds()
     {
         var canvasViewModel = new CanvasViewModel();
@@ -168,4 +248,6 @@ public sealed class DirtyRegionTests
             false,
             [new Point(bounds.Left, bounds.Top + 32), new Point(bounds.Right, bounds.Top + 32)]);
     }
+
+    private sealed record TestConfig : INodeConfig;
 }

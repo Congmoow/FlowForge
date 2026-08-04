@@ -48,6 +48,52 @@ public sealed class RetainedCanvasScene : IDisposable
         return dirty;
     }
 
+    /// <summary>
+    /// 只根据指定节点更新对应 retained operation。
+    /// </summary>
+    /// <param name="node">发生视觉变化的节点。</param>
+    /// <returns>发生变化时返回旧/新 bounds union；没有变化时返回 <see langword="null"/>。</returns>
+    public Rect? UpdateNode(NodeViewModel node)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        ArgumentNullException.ThrowIfNull(node);
+
+        if (nodeOperations.TryGetValue(node.Id, out var current)
+            && NodeOperationMatches(current, node))
+        {
+            LastDirtyRect = null;
+            return null;
+        }
+
+        var next = CreateNodeOperation(node);
+        var dirty = ReplaceNode(next);
+        LastDirtyRect = dirty;
+        return dirty;
+    }
+
+    /// <summary>
+    /// 只根据指定连线更新对应 retained operation。
+    /// </summary>
+    /// <param name="edge">发生视觉变化的连线。</param>
+    /// <returns>发生变化时返回旧/新 bounds union；没有变化时返回 <see langword="null"/>。</returns>
+    public Rect? UpdateEdge(EdgeViewModel edge)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        ArgumentNullException.ThrowIfNull(edge);
+
+        if (edgeOperations.TryGetValue(edge.Id, out var current)
+            && EdgeOperationMatches(current, edge))
+        {
+            LastDirtyRect = null;
+            return null;
+        }
+
+        var next = CreateEdgeOperation(edge);
+        var dirty = ReplaceEdge(next);
+        LastDirtyRect = dirty;
+        return dirty;
+    }
+
     /// <summary>按当前 ViewModel 集合重建并同步 retained scene。</summary>
     /// <param name="nodes">当前节点集合。</param>
     /// <param name="edges">当前连线集合。</param>
@@ -63,14 +109,11 @@ public sealed class RetainedCanvasScene : IDisposable
 
         foreach (var node in nodeList)
         {
-            var next = CreateNodeOperation(node);
-            if (nodeOperations.TryGetValue(node.Id, out var current) && current.Equals(next))
+            var nodeDirty = UpdateNode(node);
+            if (nodeDirty is { } value)
             {
-                next.Dispose();
-                continue;
+                dirty = UnionNullable(dirty, value);
             }
-
-            dirty = UnionNullable(dirty, ReplaceNode(next));
         }
 
         foreach (var removed in nodeOperations.Keys.Except(nodeList.Select(node => node.Id)).ToArray())
@@ -83,14 +126,11 @@ public sealed class RetainedCanvasScene : IDisposable
 
         foreach (var edge in edgeList)
         {
-            var next = CreateEdgeOperation(edge);
-            if (edgeOperations.TryGetValue(edge.Id, out var current) && current.Equals(next))
+            var edgeDirty = UpdateEdge(edge);
+            if (edgeDirty is { } value)
             {
-                next.Dispose();
-                continue;
+                dirty = UnionNullable(dirty, value);
             }
-
-            dirty = UnionNullable(dirty, ReplaceEdge(next));
         }
 
         foreach (var removed in edgeOperations.Keys.Except(edgeList.Select(edge => edge.Id)).ToArray())
@@ -129,7 +169,12 @@ public sealed class RetainedCanvasScene : IDisposable
 
     private static NodeDrawOperation CreateNodeOperation(NodeViewModel node)
     {
-        return new NodeDrawOperation(new NodeDrawSnapshot(
+        return new NodeDrawOperation(CreateNodeSnapshot(node));
+    }
+
+    private static NodeDrawSnapshot CreateNodeSnapshot(NodeViewModel node)
+    {
+        return new NodeDrawSnapshot(
             node.Id,
             CanvasCulling.NodeBounds(node.Position),
             node.Title,
@@ -137,12 +182,33 @@ public sealed class RetainedCanvasScene : IDisposable
             ResolveNodeBorderColor(node.ExecutionState),
             node.IsSelected,
             System.Collections.Immutable.ImmutableArray.CreateRange(
-                node.Inputs.Concat(node.Outputs).Select(port => port.AnchorPoint))));
+                node.Inputs.Concat(node.Outputs).Select(port => port.AnchorPoint)));
+    }
+
+    private static bool NodeOperationMatches(NodeDrawOperation operation, NodeViewModel node)
+    {
+        var snapshot = operation.Snapshot;
+        return snapshot.Id == node.Id
+            && snapshot.Bounds == CanvasCulling.NodeBounds(node.Position)
+            && string.Equals(snapshot.Title, node.Title, StringComparison.Ordinal)
+            && string.Equals(snapshot.Body, node.TypeId, StringComparison.Ordinal)
+            && snapshot.BorderColor == ResolveNodeBorderColor(node.ExecutionState)
+            && snapshot.IsSelected == node.IsSelected
+            && snapshot.PortPoints.SequenceEqual(node.Inputs.Concat(node.Outputs).Select(port => port.AnchorPoint));
     }
 
     private static EdgeDrawOperation CreateEdgeOperation(EdgeViewModel edge)
     {
         return new EdgeDrawOperation(new EdgeDrawSnapshot(edge.Id, edge.StartPoint, edge.EndPoint, 2));
+    }
+
+    private static bool EdgeOperationMatches(EdgeDrawOperation operation, EdgeViewModel edge)
+    {
+        var snapshot = operation.Snapshot;
+        return snapshot.Id == edge.Id
+            && snapshot.StartPoint == edge.StartPoint
+            && snapshot.EndPoint == edge.EndPoint
+            && snapshot.StrokeWidth == 2;
     }
 
     private static Color ResolveNodeBorderColor(NodeExecutionVisualState state)

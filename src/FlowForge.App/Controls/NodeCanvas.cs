@@ -607,9 +607,31 @@ public sealed class NodeCanvas : Panel, IDisposable
 
     private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
-        SyncRetainedScene();
+        if (sender is not NodeViewModel node || !AffectsNodeVisual(eventArgs.PropertyName))
+        {
+            return;
+        }
+
+        retainedScene.UpdateNode(node);
+        if (observedCanvas is not null)
+        {
+            foreach (var edge in observedCanvas.Edges.Where(edge =>
+                edge.Source.Node.Id == node.Id || edge.Target?.Node.Id == node.Id))
+            {
+                retainedScene.UpdateEdge(edge);
+            }
+        }
+
         SyncRetainedVisuals(arrangeChildren: true);
         RenderInvalidationVersion++;
+    }
+
+    private static bool AffectsNodeVisual(string? propertyName)
+    {
+        return propertyName is null
+            or nameof(NodeViewModel.Position)
+            or nameof(NodeViewModel.IsSelected)
+            or nameof(NodeViewModel.ExecutionState);
     }
 
     private void OnEdgesChanged(object? sender, NotifyCollectionChangedEventArgs eventArgs)
