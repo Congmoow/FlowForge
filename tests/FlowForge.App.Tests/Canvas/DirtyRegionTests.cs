@@ -90,6 +90,31 @@ public sealed class DirtyRegionTests
         canvas.RetainedScene.LastDirtyRect.Should().Be(new Rect(10, 20, 290, 196));
     }
 
+    [Fact]
+    public void NodeCanvas_NodeMove_UpdatesOnlyTheChangedChildVisual()
+    {
+        var canvasViewModel = new CanvasViewModel();
+        var movedNode = new NodeViewModel(Guid.NewGuid(), "core.test.moved", "移动节点", 10, 20);
+        var unchangedNode = new NodeViewModel(Guid.NewGuid(), "core.test.unchanged", "未移动节点", 400, 20);
+        canvasViewModel.Nodes.Add(movedNode);
+        canvasViewModel.Nodes.Add(unchangedNode);
+        using var canvas = new NodeCanvas { Canvas = canvasViewModel };
+        canvas.Measure(new Size(800, 600));
+        canvas.Arrange(new Rect(0, 0, 800, 600));
+
+        var before = canvas.RetainedVisuals
+            .ToDictionary(visual => visual.OperationId);
+
+        movedNode.Position = new Point(80, 120);
+
+        var after = canvas.RetainedVisuals
+            .ToDictionary(visual => visual.OperationId);
+        after[movedNode.Id].Should().BeSameAs(before[movedNode.Id]);
+        after[movedNode.Id].ViewBounds.Should().Be(new Rect(80, 120, 220, 96));
+        after[unchangedNode.Id].Should().BeSameAs(before[unchangedNode.Id]);
+        after[unchangedNode.Id].ViewBounds.Should().Be(before[unchangedNode.Id].ViewBounds);
+    }
+
     private static NodeDrawSnapshot CreateNodeSnapshot(Rect bounds, Guid? id = null)
     {
         return new NodeDrawSnapshot(
