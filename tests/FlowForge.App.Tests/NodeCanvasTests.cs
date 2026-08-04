@@ -1,5 +1,6 @@
 using FlowForge.App.Controls;
 using FlowForge.App.ViewModels;
+using Avalonia;
 using FluentAssertions;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -126,5 +127,16 @@ public sealed class NodeCanvasTests
         canvasViewModel.Edges.Add(new EdgeViewModel(Guid.NewGuid(), source, target));
 
         canvas.RenderInvalidationVersion.Should().BeGreaterThan(versionBefore);
+    }
+
+    [Fact]
+    public void Canvas_ControlSize_UpdatesViewportBeforeRenderPass()
+    {
+        var canvas = new NodeCanvas();
+
+        canvas.Measure(new Size(400, 200));
+        canvas.Arrange(new Rect(0, 0, 400, 200));
+
+        canvas.Viewport.ViewSize.Should().Be(new Size(400, 200));
     }
 }
