@@ -26,6 +26,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<NodeRegistry>(provider => NodeRegistry.CreateDefault(
             provider.GetRequiredService<ISecretStore>(),
             provider.GetRequiredService<HttpClient>()));
+        services.AddSingleton<IPluginService>(provider => new PluginService(
+            provider.GetRequiredService<NodeRegistry>(),
+            Path.Combine(AppContext.BaseDirectory, "plugins")));
         services.AddSingleton<IWorkflowRunner, WorkflowRunner>();
         services.AddSingleton<IStage3WorkflowRunner, Stage3SampleWorkflowRunner>();
         services.AddSingleton<IWorkflowFileService, AvaloniaWorkflowFileService>();

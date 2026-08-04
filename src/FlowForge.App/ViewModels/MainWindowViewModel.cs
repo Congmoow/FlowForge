@@ -8,6 +8,7 @@ using FlowForge.App.Services;
 using FlowForge.Core.Abstractions;
 using FlowForge.Core.Execution;
 using FlowForge.Core.Graph;
+using FlowForge.Core.Plugin;
 using FlowForge.Core.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
@@ -236,6 +237,46 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     /// </summary>
     [Reactive]
     public string StatusMessage { get; private set; } = "就绪。";
+
+    /// <summary>
+    /// 应用插件扫描结果，并刷新使用共享节点目录的界面模板。
+    /// </summary>
+    /// <param name="report">插件扫描报告。</param>
+    public void ApplyPluginLoadReport(PluginLoadReport report)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+        Toolbox.Refresh();
+
+        foreach (var diagnostic in report.Diagnostics)
+        {
+            if (diagnostic.Severity == PluginDiagnosticSeverity.Error)
+            {
+                Trace.TraceError("插件加载诊断：{0}", diagnostic.Message);
+            }
+            else
+            {
+                Trace.TraceWarning("插件加载诊断：{0}", diagnostic.Message);
+            }
+        }
+
+        var diagnostics = report.Diagnostics.Count == 0
+            ? string.Empty
+            : $" 诊断：{string.Join("；", report.Diagnostics.Select(diagnostic => diagnostic.Message))}";
+        StatusMessage = report.LoadedPluginCount == 0 && report.Diagnostics.Count == 0
+            ? "插件加载完成：未发现可用插件。"
+            : $"插件加载完成：成功加载 {report.LoadedPluginCount} 个插件、{report.RegisteredDefinitionCount} 个节点。{diagnostics}";
+    }
+
+    /// <summary>
+    /// 报告插件启动过程中的未预期错误。
+    /// </summary>
+    /// <param name="error">插件加载异常。</param>
+    public void ReportPluginLoadFailure(Exception error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+        Trace.TraceError("插件启动加载失败：{0}", error);
+        StatusMessage = $"插件加载失败：{error.Message}";
+    }
 
     /// <summary>
     /// 取消进行中的工作流并释放命令资源。

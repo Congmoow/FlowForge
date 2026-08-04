@@ -27,14 +27,12 @@ public sealed class ToolboxViewModel : ReactiveObject
     {
         ArgumentNullException.ThrowIfNull(registry);
 
-        Templates = new ObservableCollection<NodeTemplateViewModel>(registry.Definitions.Select(ToTemplate));
-        if (Templates.Count == 0)
-        {
-            throw new InvalidOperationException("节点目录不能为空。");
-        }
-
-        SelectedTemplate = Templates[0];
+        Registry = registry;
+        Templates = [];
+        Refresh();
     }
+
+    private NodeRegistry Registry { get; }
 
     /// <summary>
     /// 可创建的节点模板。
@@ -45,7 +43,29 @@ public sealed class ToolboxViewModel : ReactiveObject
     /// 当前选中的节点模板。
     /// </summary>
     [Reactive]
-    public NodeTemplateViewModel SelectedTemplate { get; set; }
+    public NodeTemplateViewModel SelectedTemplate { get; set; } = null!;
+
+    /// <summary>
+    /// 从共享节点目录刷新模板，保留仍然存在的当前选择。
+    /// </summary>
+    public void Refresh()
+    {
+        var selectedTypeId = SelectedTemplate?.TypeId;
+        var templates = Registry.Definitions.Select(ToTemplate).ToArray();
+        if (templates.Length == 0)
+        {
+            throw new InvalidOperationException("节点目录不能为空。");
+        }
+
+        Templates.Clear();
+        foreach (var template in templates)
+        {
+            Templates.Add(template);
+        }
+
+        SelectedTemplate = Templates.FirstOrDefault(template => template.TypeId == selectedTypeId)
+            ?? Templates[0];
+    }
 
     private static NodeTemplateViewModel ToTemplate(NodeDefinition definition)
     {

@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using System.Diagnostics;
 using FlowForge.App.Diagnostics;
 using FlowForge.App.Services;
@@ -33,6 +34,9 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = serviceProvider.GetRequiredService<MainWindow>();
+            var pluginService = serviceProvider.GetRequiredService<IPluginService>();
+            desktop.Exit += (_, _) => serviceProvider.Dispose();
+            _ = LoadPluginsAsync(desktop.MainWindow, pluginService);
 
             try
             {
@@ -56,6 +60,32 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static async Task LoadPluginsAsync(Window window, IPluginService pluginService)
+    {
+        try
+        {
+            var report = await pluginService.LoadAsync();
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (window.DataContext is MainWindowViewModel viewModel)
+                {
+                    viewModel.ApplyPluginLoadReport(report);
+                }
+            });
+        }
+        catch (Exception error)
+        {
+            Trace.TraceError("异步加载插件失败：{0}", error);
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (window.DataContext is MainWindowViewModel viewModel)
+                {
+                    viewModel.ReportPluginLoadFailure(error);
+                }
+            });
+        }
     }
 
     private static void StartPerfRun(
