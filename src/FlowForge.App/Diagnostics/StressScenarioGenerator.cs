@@ -1,4 +1,6 @@
 using System.Buffers.Binary;
+using Avalonia;
+using FlowForge.App.Canvas;
 using FlowForge.App.ViewModels;
 
 namespace FlowForge.App.Diagnostics;
@@ -60,7 +62,13 @@ public static class StressScenarioGenerator
             canvas.Edges.Add(edges[index]);
         }
 
-        return new StressScenario(seed, canvas, nodes, edges);
+        var worldBounds = CanvasCulling.NodeBounds(nodes[0].Position);
+        foreach (var node in nodes.Skip(1))
+        {
+            worldBounds = worldBounds.Union(CanvasCulling.NodeBounds(node.Position));
+        }
+
+        return new StressScenario(seed, canvas, nodes, edges, worldBounds);
     }
 
     private static Guid CreateStableId(int seed, int index, byte kind)
@@ -85,12 +93,14 @@ public sealed class StressScenario
         int seed,
         CanvasViewModel canvas,
         IReadOnlyList<NodeViewModel> nodes,
-        IReadOnlyList<EdgeViewModel> edges)
+        IReadOnlyList<EdgeViewModel> edges,
+        Rect worldBounds)
     {
         Seed = seed;
         Canvas = canvas;
         Nodes = nodes;
         Edges = edges;
+        WorldBounds = worldBounds;
     }
 
     /// <summary>场景使用的确定性种子。</summary>
@@ -104,4 +114,7 @@ public sealed class StressScenario
 
     /// <summary>场景连线的只读视图。</summary>
     public IReadOnlyList<EdgeViewModel> Edges { get; }
+
+    /// <summary>包含压力场景全部节点的 world 边界。</summary>
+    public Rect WorldBounds { get; }
 }

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using FlowForge.App.Canvas;
 using FlowForge.App.Diagnostics;
 using FluentAssertions;
 
@@ -19,6 +20,10 @@ public sealed class StressScenarioTests
 
         first.Nodes.Should().HaveCount(nodeCount);
         first.Edges.Should().HaveCount(nodeCount - 1);
+        first.WorldBounds.Should().Be(second.WorldBounds);
+        first.Nodes.Select(node => CanvasCulling.NodeBounds(node.Position))
+            .Should().OnlyContain(bounds => first.WorldBounds.Contains(bounds.TopLeft)
+                && first.WorldBounds.Contains(bounds.BottomRight));
         first.Nodes.Select(node => node.Id).Should().Equal(second.Nodes.Select(node => node.Id));
         first.Nodes.Select(node => node.Position).Should().Equal(second.Nodes.Select(node => node.Position));
         first.Edges.Select(edge => edge.Id).Should().Equal(second.Edges.Select(edge => edge.Id));
