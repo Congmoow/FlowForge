@@ -129,13 +129,19 @@ public sealed class NodeCanvas : Control, IDisposable
     }
 
     /// <inheritdoc />
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        Viewport.ViewSize = e.NewSize;
+    }
+
+    /// <inheritdoc />
     public override void Render(DrawingContext context)
     {
         Interlocked.Increment(ref renderFrameCount);
         base.Render(context);
 
         var bounds = new Rect(Bounds.Size);
-        Viewport.ViewSize = bounds.Size;
         context.FillRectangle(CanvasBackground, bounds);
         using (context.PushTransform(Viewport.Transform.WorldToViewMatrix))
         {
