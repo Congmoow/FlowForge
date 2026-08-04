@@ -16,6 +16,9 @@ public sealed record PerfSamplingOptions
     /// <summary>生成器使用的确定性种子。</summary>
     public int Seed { get; init; } = DefaultSeed;
 
+    /// <summary>被测代码提交标识；为空时读取 FLOWFORGE_PERF_COMMIT。</summary>
+    public string? Commit { get; init; }
+
     /// <summary>预热时长；预热样本不写入结果。</summary>
     public TimeSpan Warmup { get; init; } = TimeSpan.FromSeconds(5);
 
@@ -96,6 +99,7 @@ public sealed record PerfSamplingOptions
         var perf = false;
         var nodeCount = 1000;
         var seed = DefaultSeed;
+        string? commit = null;
         string? outputPath = null;
         string? screenshotPath = null;
 
@@ -120,6 +124,12 @@ public sealed record PerfSamplingOptions
                 continue;
             }
 
+            if (TryReadOption(argument, "--commit", args, ref index, out var commitValue))
+            {
+                commit = commitValue;
+                continue;
+            }
+
             if (TryReadOption(argument, "--output", args, ref index, out var pathValue))
             {
                 outputPath = pathValue;
@@ -136,6 +146,7 @@ public sealed record PerfSamplingOptions
         {
             NodeCount = nodeCount,
             Seed = seed,
+            Commit = commit,
             OutputPath = outputPath,
             ScreenshotPath = screenshotPath,
         };
