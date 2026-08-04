@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Rendering.SceneGraph;
 using FlowForge.App.Canvas;
 using FlowForge.App.ViewModels;
 
@@ -12,7 +13,7 @@ namespace FlowForge.App.Controls;
 /// <summary>
 /// 节点画布控件，负责自绘网格和节点。
 /// </summary>
-public sealed class NodeCanvas : Control, IDisposable
+public sealed class NodeCanvas : Panel, IDisposable
 {
     private const double NodeWidth = 220;
     private const double NodeHeight = 96;
@@ -46,6 +47,9 @@ public sealed class NodeCanvas : Control, IDisposable
     private bool isSpacePressed;
     private CanvasViewModel? observedCanvas;
     private RetainedCanvasScene retainedScene = new();
+    private readonly Dictionary<Guid, RetainedOperationVisual> nodeVisuals = [];
+    private readonly Dictionary<Guid, RetainedOperationVisual> edgeVisuals = [];
+    private readonly CanvasBackgroundVisual backgroundVisual;
     private bool disposed;
     private long renderFrameCount;
 
@@ -67,6 +71,13 @@ public sealed class NodeCanvas : Control, IDisposable
     public NodeCanvas()
     {
         Focusable = true;
+        ClipToBounds = true;
+        backgroundVisual = new CanvasBackgroundVisual(this)
+        {
+            IsHitTestVisible = false,
+            ZIndex = -1,
+        };
+        Children.Add(backgroundVisual);
         DragDrop.SetAllowDrop(this, true);
         AddHandler(DragDrop.DropEvent, OnDrop);
         this.GetObservable(CanvasProperty).Subscribe(ObserveCanvas);
@@ -100,6 +111,12 @@ public sealed class NodeCanvas : Control, IDisposable
     /// 当前画布的 retained 绘制场景。
     /// </summary>
     public RetainedCanvasScene RetainedScene => retainedScene;
+
+    /// <summary>
+    /// 当前已进入 visual tree 的可见 retained operation 子 visual。
+    /// </summary>
+    public IReadOnlyCollection<RetainedOperationVisual> RetainedVisuals =>
+        nodeVisuals.Values.Concat(edgeVisuals.Values).ToArray();
 
     /// <summary>
     /// 获取因 ViewModel 状态变化触发的渲染失效次数。
@@ -136,12 +153,43 @@ public sealed class NodeCanvas : Control, IDisposable
     }
 
     /// <inheritdoc />
-    public override void Render(DrawingContext context)
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        foreach (var child in Children)
+        {
+            child.Measure(child is RetainedOperationVisual visual
+                ? visual.ViewBounds.Size
+                : availableSize);
+        }
+
+        return new Size(
+            double.IsInfinity(availableSize.Width) ? 0 : availableSize.Width,
+            double.IsInfinity(availableSize.Height) ? 0 : availableSize.Height);
+    }
+
+    /// <inheritdoc />
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        foreach (var child in Children)
+        {
+            if (child is RetainedOperationVisual visual)
+            {
+                child.Arrange(visual.ViewBounds);
+            }
+            else
+            {
+                child.Arrange(new Rect(finalSize));
+            }
+        }
+
+        return finalSize;
+    }
+
+    private void RenderCanvasBackground(DrawingContext context)
     {
         Interlocked.Increment(ref renderFrameCount);
-        base.Render(context);
 
-        var bounds = new Rect(Bounds.Size);
+        var bounds = new Rect(backgroundVisual.Bounds.Size);
         context.FillRectangle(CanvasBackground, bounds);
         using (context.PushTransform(Viewport.Transform.WorldToViewMatrix))
         {
@@ -149,22 +197,9 @@ public sealed class NodeCanvas : Control, IDisposable
 
             if (Canvas is { Nodes.Count: > 0 } canvas)
             {
-                foreach (var edge in retainedScene.EdgeOperations.Where(operation =>
-                    CanvasCulling.IntersectsIncludingBoundary(operation.Bounds, Viewport.WorldBounds)))
-                {
-                    context.Custom(edge);
-                }
-
                 if (canvas.DraftEdge is not null)
                 {
                     DrawEdge(context, canvas.DraftEdge);
-                }
-
-                foreach (var node in retainedScene.NodeOperations.Where(operation =>
-                    CanvasCulling.IntersectsIncludingBoundary(operation.Bounds, Viewport.WorldBounds)))
-                {
-                    context.Custom(node);
-                    DrawNodeText(context, node);
                 }
 
                 DrawConnectionPreview(context, canvas);
@@ -298,7 +333,6 @@ public sealed class NodeCanvas : Control, IDisposable
             canvas.MoveNodeCommand.Execute(new MoveNodeRequest(nodeId, ToWorldVector(delta)));
         }
         lastPointerPosition = currentPosition;
-        InvalidateVisual();
         e.Handled = true;
     }
 
@@ -539,6 +573,7 @@ public sealed class NodeCanvas : Control, IDisposable
         }
 
         SyncRetainedScene();
+        SyncRetainedVisuals();
         InvalidateCanvas();
     }
 
@@ -561,6 +596,7 @@ public sealed class NodeCanvas : Control, IDisposable
         }
 
         SyncRetainedScene();
+        SyncRetainedVisuals();
         InvalidateCanvas();
     }
 
@@ -572,23 +608,27 @@ public sealed class NodeCanvas : Control, IDisposable
     private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
         SyncRetainedScene();
-        InvalidateCanvas();
+        SyncRetainedVisuals();
+        RenderInvalidationVersion++;
     }
 
     private void OnEdgesChanged(object? sender, NotifyCollectionChangedEventArgs eventArgs)
     {
         SyncRetainedScene();
+        SyncRetainedVisuals();
         InvalidateCanvas();
     }
 
     private void OnViewportChanged(object? sender, EventArgs eventArgs)
     {
+        SyncRetainedVisuals();
         InvalidateCanvas();
     }
 
     private void InvalidateCanvas()
     {
         RenderInvalidationVersion++;
+        backgroundVisual.InvalidateVisual();
         InvalidateVisual();
     }
 
@@ -601,6 +641,64 @@ public sealed class NodeCanvas : Control, IDisposable
         }
 
         retainedScene.Rebuild(observedCanvas.Nodes, observedCanvas.Edges);
+    }
+
+    private void SyncRetainedVisuals()
+    {
+        var visibleNodes = retainedScene.NodeOperations
+            .Where(operation => CanvasCulling.IntersectsIncludingBoundary(
+                operation.Bounds,
+                Viewport.WorldBounds))
+            .ToDictionary(operation => operation.Snapshot.Id);
+        var visibleEdges = retainedScene.EdgeOperations
+            .Where(operation => CanvasCulling.IntersectsIncludingBoundary(
+                operation.Bounds,
+                Viewport.WorldBounds))
+            .ToDictionary(operation => operation.Snapshot.Id);
+
+        SyncVisualMap(nodeVisuals, visibleNodes);
+        SyncVisualMap(edgeVisuals, visibleEdges);
+        foreach (var visual in nodeVisuals.Values.Concat(edgeVisuals.Values))
+        {
+            visual.Arrange(visual.ViewBounds);
+        }
+    }
+
+    private void SyncVisualMap<T>(
+        Dictionary<Guid, RetainedOperationVisual> visuals,
+        IReadOnlyDictionary<Guid, T> operations)
+        where T : ICustomDrawOperation
+    {
+        foreach (var operation in operations.Values)
+        {
+            var operationId = operation switch
+            {
+                NodeDrawOperation node => node.Snapshot.Id,
+                EdgeDrawOperation edge => edge.Snapshot.Id,
+                _ => throw new InvalidOperationException("未知 retained operation 类型。"),
+            };
+
+            if (visuals.TryGetValue(operationId, out var visual))
+            {
+                visual.Update(operation, Viewport.Transform);
+                continue;
+            }
+
+            visual = new RetainedOperationVisual(operation, Viewport.Transform)
+            {
+                ZIndex = operation is EdgeDrawOperation ? 0 : 1,
+            };
+            visuals.Add(operationId, visual);
+            Children.Add(visual);
+        }
+
+        foreach (var removed in visuals.Keys.Except(operations.Keys).ToArray())
+        {
+            var visual = visuals[removed];
+            visuals.Remove(removed);
+            Children.Remove(visual);
+            visual.Dispose();
+        }
     }
 
     /// <summary>
@@ -691,6 +789,15 @@ public sealed class NodeCanvas : Control, IDisposable
             }
         }
 
+        foreach (var visual in nodeVisuals.Values.Concat(edgeVisuals.Values).ToArray())
+        {
+            Children.Remove(visual);
+            visual.Dispose();
+        }
+
+        nodeVisuals.Clear();
+        edgeVisuals.Clear();
+        Children.Remove(backgroundVisual);
         Viewport.Changed -= OnViewportChanged;
         retainedScene.Dispose();
     }
@@ -701,5 +808,20 @@ public sealed class NodeCanvas : Control, IDisposable
     public void ResetRenderFrameCount()
     {
         Interlocked.Exchange(ref renderFrameCount, 0);
+    }
+
+    private sealed class CanvasBackgroundVisual : Control
+    {
+        private readonly NodeCanvas owner;
+
+        public CanvasBackgroundVisual(NodeCanvas owner)
+        {
+            this.owner = owner;
+        }
+
+        public override void Render(DrawingContext context)
+        {
+            owner.RenderCanvasBackground(context);
+        }
     }
 }

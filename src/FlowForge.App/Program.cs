@@ -1,5 +1,7 @@
 ﻿using Avalonia;
 
+using Avalonia.Rendering.Composition;
+
 namespace FlowForge.App;
 
 internal static class Program
@@ -13,6 +15,7 @@ internal static class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            .With(new CompositionOptions { UseRegionDirtyRectClipping = true })
 #if DEBUG
             .WithDeveloperTools()
 #endif
