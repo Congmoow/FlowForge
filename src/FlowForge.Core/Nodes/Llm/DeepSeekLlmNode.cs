@@ -17,8 +17,11 @@ namespace FlowForge.Core.Nodes.Llm;
 /// <param name="Model">用于生成回答的模型标识。</param>
 /// <param name="Temperature">控制输出随机性的温度值。</param>
 public sealed record DeepSeekLlmNodeConfig(
+    [property: ConfigField(Label = "API Key 密钥引用", Editor = "Password", Required = true, Order = 0)]
     string ApiKeySecretId = "",
+    [property: ConfigField(Label = "模型", Editor = "ComboBox", Options = "deepseek-chat,deepseek-reasoner", Order = 1)]
     string Model = "deepseek-chat",
+    [property: ConfigField(Label = "温度", Editor = "NumericUpDown", Min = 0, Max = 2, Order = 2)]
     double Temperature = 0.7) : INodeConfig;
 
 /// <summary>

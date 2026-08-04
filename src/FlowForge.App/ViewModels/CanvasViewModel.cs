@@ -58,6 +58,12 @@ public sealed class CanvasViewModel : ReactiveObject
     public ObservableCollection<EdgeViewModel> Edges { get; } = [];
 
     /// <summary>
+    /// 当前属性面板使用的主选中节点。
+    /// </summary>
+    [Reactive]
+    public NodeViewModel? SelectedNode { get; private set; }
+
+    /// <summary>
     /// 当前拖拽中的草稿连线。
     /// </summary>
     [Reactive]
@@ -142,6 +148,7 @@ public sealed class CanvasViewModel : ReactiveObject
         var edgeSnapshot = edges.ToArray();
         Nodes.Clear();
         Edges.Clear();
+        SelectedNode = null;
         foreach (var node in nodeSnapshot)
         {
             Nodes.Add(node);
@@ -214,6 +221,8 @@ public sealed class CanvasViewModel : ReactiveObject
                 node.IsSelected = !node.IsSelected;
                 break;
         }
+
+        SelectedNode = Nodes.FirstOrDefault(candidate => candidate.IsSelected);
     }
 
     private void ClearSelection()
@@ -222,6 +231,8 @@ public sealed class CanvasViewModel : ReactiveObject
         {
             node.IsSelected = false;
         }
+
+        SelectedNode = null;
     }
 
     private void AddNodeFromTemplate(AddNodeFromTemplateRequest request)

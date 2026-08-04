@@ -7,7 +7,9 @@ namespace FlowForge.Core.Nodes.Transform;
 /// 表示文本拼接节点的配置。
 /// </summary>
 /// <param name="Separator">相邻文本片段之间使用的分隔符。</param>
-public sealed record TextConcatNodeConfig(string Separator = "") : INodeConfig;
+public sealed record TextConcatNodeConfig(
+    [property: ConfigField(Label = "分隔符", Editor = "TextBox", Order = 0)]
+    string Separator = "") : INodeConfig;
 
 /// <summary>
 /// 使用配置的分隔符拼接文本片段数组。

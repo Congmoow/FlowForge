@@ -11,8 +11,11 @@ namespace FlowForge.Core.Nodes.DataSource;
 /// <param name="HasHeader">是否将第一行作为列名。</param>
 /// <param name="Delimiter">字段分隔符。</param>
 public sealed record CsvDataSourceConfig(
+    [property: ConfigField(Label = "文件路径", Editor = "FilePicker", Required = true, Order = 0)]
     string FilePath = "",
+    [property: ConfigField(Label = "包含表头", Editor = "ComboBox", Options = "true,false", Order = 1)]
     bool HasHeader = true,
+    [property: ConfigField(Label = "分隔符", Editor = "TextBox", Order = 2)]
     char Delimiter = ',') : INodeConfig;
 
 /// <summary>

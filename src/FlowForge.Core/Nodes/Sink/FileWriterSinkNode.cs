@@ -10,7 +10,9 @@ namespace FlowForge.Core.Nodes.Sink;
 /// <param name="FilePath">要写入的目标文件路径。</param>
 /// <param name="Append">是否保留已有内容并在文件尾部追加。</param>
 public sealed record FileWriterSinkNodeConfig(
+    [property: ConfigField(Label = "文件路径", Editor = "FilePicker", Required = true, Order = 0)]
     string FilePath = "",
+    [property: ConfigField(Label = "追加写入", Editor = "ComboBox", Options = "true,false", Order = 1)]
     bool Append = false) : INodeConfig;
 
 /// <summary>

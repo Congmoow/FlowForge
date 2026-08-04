@@ -18,9 +18,13 @@ namespace FlowForge.Core.Nodes.Llm;
 /// <param name="Temperature">控制输出随机性的温度值。</param>
 /// <param name="BaseUrl">OpenAI 兼容服务的基础地址。</param>
 public sealed record OpenAiLlmNodeConfig(
+    [property: ConfigField(Label = "API Key 密钥引用", Editor = "Password", Required = true, Order = 0)]
     string ApiKeySecretId = "",
+    [property: ConfigField(Label = "模型", Editor = "ComboBox", Options = "gpt-4o-mini,gpt-4o", Order = 1)]
     string Model = "gpt-4o-mini",
+    [property: ConfigField(Label = "温度", Editor = "NumericUpDown", Min = 0, Max = 2, Order = 2)]
     double Temperature = 0.7,
+    [property: ConfigField(Label = "服务地址", Editor = "TextBox", Required = true, Order = 3)]
     string BaseUrl = "https://api.openai.com/v1") : INodeConfig;
 
 /// <summary>
