@@ -110,18 +110,24 @@
                 BorderBrush="#D8DEE8"
                 BorderThickness="1"
                 Padding="18">
-            <DockPanel LastChildFill="True">
-                <TextBlock DockPanel.Dock="Top"
-                           Text="{Binding CanvasTitle}"
-                           FontSize="14"
-                           FontWeight="SemiBold"
-                           Foreground="#243044"
-                           Margin="0,0,0,12" />
-                <controls:NodeCanvas MinHeight="360"
-                                     x:Name="PerfCanvas"
-                                     Canvas="{Binding Canvas}"
-                                     Toolbox="{Binding Toolbox}" />
-            </DockPanel>
+            <Grid>
+                <DockPanel LastChildFill="True">
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="{Binding CanvasTitle}"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="#243044"
+                               Margin="0,0,0,12" />
+                    <controls:NodeCanvas MinHeight="360"
+                                         x:Name="PerfCanvas"
+                                         Canvas="{Binding Canvas}"
+                                         Toolbox="{Binding Toolbox}" />
+                </DockPanel>
+                <controls:PerfHudControl DataContext="{Binding PerfHud}"
+                                         HorizontalAlignment="Right"
+                                         VerticalAlignment="Top"
+                                         Margin="0,42,12,0" />
+            </Grid>
         </Border>
 
         <Border Grid.Row="1"

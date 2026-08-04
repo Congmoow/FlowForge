@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using System.Diagnostics;
 using FlowForge.App.Diagnostics;
 using FlowForge.App.Services;
+using FlowForge.App.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FlowForge.App;
@@ -72,11 +73,25 @@ public partial class App : Application
     {
         try
         {
+            if (window is not MainWindow mainWindow
+                || mainWindow.DataContext is not MainWindowViewModel viewModel)
+            {
+                throw new InvalidOperationException("性能模式缺少主窗口 ViewModel。");
+            }
+
+            var runOptions = PerfRunOptions.From(options);
+            if (runOptions.ShowHud)
+            {
+                viewModel.PerfHud.Start(runOptions);
+            }
+
             var scenario = StressScenarioGenerator.Create(options.NodeCount, options.Seed);
             var result = await PerfScenarioRunner.RunAsync(
-                ((MainWindow)window).CanvasControl,
+                mainWindow.CanvasControl,
                 scenario,
-                options);
+                runOptions,
+                new Progress<PerfSample>(viewModel.PerfHud.ApplySample));
+            viewModel.PerfHud.Complete(result);
             Trace.WriteLine(
                 $"性能采样完成：节点={result.NodeCount}，平均 FPS={result.AverageFramesPerSecond:F2}，" +
                 $"峰值内存={result.PeakWorkingSetBytes} bytes，样本={result.Samples.Count}。");
@@ -84,6 +99,12 @@ public partial class App : Application
         }
         catch (Exception error)
         {
+            if (window is MainWindow mainWindow
+                && mainWindow.DataContext is MainWindowViewModel viewModel)
+            {
+                viewModel.PerfHud.Fail(error);
+            }
+
             Trace.TraceError("性能采样失败：{0}", error);
             desktop.TryShutdown(1);
         }

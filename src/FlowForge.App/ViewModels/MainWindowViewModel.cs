@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Linq;
 using FlowForge.App.Commands;
+using FlowForge.App.Diagnostics;
 using FlowForge.App.Services;
 using FlowForge.Core.Execution;
 using FlowForge.Core.Serialization;
@@ -110,6 +111,11 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     public CanvasViewModel Canvas { get; }
 
     /// <summary>
+    /// 开发模式性能 HUD 状态；普通模式下保持隐藏。
+    /// </summary>
+    public PerfHudViewModel PerfHud { get; } = new();
+
+    /// <summary>
     /// 左侧节点库。
     /// </summary>
     public ToolboxViewModel Toolbox { get; }
@@ -179,6 +185,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         SaveAsCommand.Dispose();
         UndoCommand.Dispose();
         RedoCommand.Dispose();
+        PerfHud.Dispose();
         GC.SuppressFinalize(this);
     }
 
