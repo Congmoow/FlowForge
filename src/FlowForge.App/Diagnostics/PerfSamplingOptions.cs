@@ -25,8 +25,8 @@ public sealed record PerfSamplingOptions
     /// <summary>样本采样间隔。</summary>
     public TimeSpan SampleInterval { get; init; } = TimeSpan.FromSeconds(1);
 
-    /// <summary>自动平移循环间隔。</summary>
-    public TimeSpan PanInterval { get; init; } = TimeSpan.FromMilliseconds(16);
+    /// <summary>自动平移循环间隔；8ms 为 Windows UI 合成器保留 60fps 采样余量。</summary>
+    public TimeSpan PanInterval { get; init; } = TimeSpan.FromMilliseconds(8);
 
     /// <summary>自动平移速度，单位为 view 像素/秒。</summary>
     public double PanSpeed { get; init; } = 120;
