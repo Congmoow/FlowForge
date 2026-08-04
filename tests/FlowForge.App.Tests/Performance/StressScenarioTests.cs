@@ -70,18 +70,23 @@ public sealed class StressScenarioTests
         json.RootElement.GetProperty("nodeCount").GetInt32().Should().Be(1000);
         json.RootElement.GetProperty("samples").GetArrayLength().Should().Be(2);
         json.RootElement.GetProperty("averageFramesPerSecond").GetDouble().Should().Be(59);
+        json.RootElement.GetProperty("metadata").GetProperty("commit").GetString()
+            .Should().NotBeNullOrWhiteSpace();
+        json.RootElement.GetProperty("metadata").GetProperty("windowWidth").GetDouble()
+            .Should().BeGreaterThanOrEqualTo(0);
     }
 
     [Fact]
     public void PerfSamplingOptions_TryParsePerfArguments_ReturnsValidatedOptions()
     {
         var parsed = PerfSamplingOptions.TryParse(
-            ["--perf", "--nodes", "250", "--seed=7", "--output", "artifacts/perf.json", "--screenshot", "artifacts/perf.png"],
+            ["--perf", "--nodes", "250", "--seed=7", "--commit", "abc1234", "--output", "artifacts/perf.json", "--screenshot", "artifacts/perf.png"],
             out var options);
 
         parsed.Should().BeTrue();
         options.NodeCount.Should().Be(250);
         options.Seed.Should().Be(7);
+        options.Commit.Should().Be("abc1234");
         options.OutputPath.Should().Be("artifacts/perf.json");
         options.ScreenshotPath.Should().Be("artifacts/perf.png");
     }

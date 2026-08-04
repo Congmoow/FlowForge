@@ -4,6 +4,18 @@
   "startedAt": "2026-08-04T08:10:12.8205277+00:00",
   "warmup": "00:00:05",
   "duration": "00:00:30",
+  "metadata": {
+    "commit": "75d670d828e1ff953766cffb2529f3e0599e61d0",
+    "windowWidth": 1200,
+    "windowHeight": 760,
+    "cpu": "12th Gen Intel Core i5-12450H",
+    "gpu": "Intel(R) UHD Graphics; GameViewer Virtual Display Adapter",
+    "operatingSystem": "Microsoft Windows 11 家庭版中文版，build 26200",
+    "dotnetSdk": "8.0.302",
+    "dotnetRuntime": "8.0.7",
+    "runtimeIdentifier": "win-x64",
+    "avaloniaVersion": "11.2.3"
+  },
   "samples": [
     {
       "nodeCount": 100,

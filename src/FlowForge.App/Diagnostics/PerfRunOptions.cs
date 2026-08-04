@@ -11,6 +11,9 @@ public sealed record PerfRunOptions
     /// <summary>生成器使用的确定性种子。</summary>
     public int Seed { get; init; } = PerfSamplingOptions.DefaultSeed;
 
+    /// <summary>被测代码提交标识；为空时由性能元数据读取环境变量。</summary>
+    public string? Commit { get; init; }
+
     /// <summary>预热时长；预热样本不写入结果。</summary>
     public TimeSpan Warmup { get; init; } = TimeSpan.FromSeconds(5);
 
@@ -49,6 +52,7 @@ public sealed record PerfRunOptions
         {
             NodeCount = options.NodeCount,
             Seed = options.Seed,
+            Commit = options.Commit,
             Warmup = options.Warmup,
             Duration = options.Duration,
             SampleInterval = options.SampleInterval,
@@ -69,6 +73,7 @@ public sealed record PerfRunOptions
         {
             NodeCount = NodeCount,
             Seed = Seed,
+            Commit = Commit,
             Warmup = Warmup,
             Duration = Duration,
             SampleInterval = SampleInterval,

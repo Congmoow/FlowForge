@@ -109,7 +109,10 @@ public static class PerfScenarioRunner
             startedAt,
             options.Warmup,
             options.Duration,
-            samples);
+            samples)
+        {
+            Metadata = PerfRunMetadata.Capture(options.Commit, canvas.Bounds.Size),
+        };
         if (!string.IsNullOrWhiteSpace(options.OutputPath))
         {
             await WriteJsonAsync(options.OutputPath, result, ct).ConfigureAwait(false);

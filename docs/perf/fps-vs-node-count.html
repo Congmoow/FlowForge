@@ -24,7 +24,7 @@
 <body>
 <main>
   <h1>FlowForge：节点数与 FPS</h1>
-  <p class="note">以下数据来自 Release 配置下的真实 Avalonia 窗口，未在 xUnit 中模拟帧率。被测代码提交为 <code>b0005bf</code>，四档场景使用相同窗口尺寸、seed、预热和采样口径。</p>
+  <p class="note">以下数据来自 Release 配置下的真实 Avalonia 窗口，未在 xUnit 中模拟帧率。被测代码提交为 <code>b0005bf</code>，四档场景使用相同窗口尺寸、seed、预热和采样口径；每个 JSON 还包含提交、窗口、操作系统、GPU、SDK、runtime 和 Avalonia 元数据。</p>
 
   <h2>FPS 曲线</h2>
   <div class="chart"><canvas id="fpsChart" aria-label="节点数与平均 FPS 曲线" role="img"></canvas></div>
@@ -53,6 +53,7 @@
         <li>每档预热 5 秒，随后自动平移 30 秒。</li>
         <li>每秒一个样本；FPS 来自实际 <code>NodeCanvas.Render</code> 次数。</li>
         <li>内存为进程 <code>Process.WorkingSet64</code> 峰值；表中 MiB 使用 1 MiB = 1,048,576 bytes。</li>
+        <li>JSON 的 <code>metadata</code> 字段记录提交、窗口尺寸、CPU/GPU、OS、.NET SDK/runtime、RID 和 Avalonia 版本。</li>
       </ul>
     </section>
     <section>
@@ -68,7 +69,7 @@
   </div>
 
   <h2>运行入口与截图</h2>
-  <p><code>dotnet run --project src/FlowForge.App/FlowForge.App.csproj --configuration Release --no-build -- --perf --nodes &lt;100|250|500|1000&gt; --output artifacts/perf/fps-&lt;N&gt;-b0005bf.json</code></p>
+  <p><code>dotnet run --project src/FlowForge.App/FlowForge.App.csproj --configuration Release --no-build -- --perf --nodes &lt;100|250|500|1000&gt; --commit &lt;git-commit&gt; --output artifacts/perf/fps-&lt;N&gt;-&lt;git-commit&gt;.json</code></p>
   <p>1000 节点真实窗口截图：<a href="flowforge-1000-b0005bf.png">flowforge-1000-b0005bf.png</a>。截图命名中的 hash 对应被测代码提交。</p>
 
   <h2>BenchmarkDotNet 摘要</h2>
@@ -83,7 +84,7 @@
       <tr><td>WorkflowSchedulerBenchmarks.ExecuteAsync</td><td>1000</td><td>4.495 ms</td><td>3147.36 KB</td></tr>
     </tbody>
   </table>
-  <p>原始报告：<a href="../../artifacts/benchmarks-final-20260804/results/FlowForge.Benchmarks.TopologicalSortBenchmarks-report-github.md">拓扑排序</a>、<a href="../../artifacts/benchmarks-final-20260804/results/FlowForge.Benchmarks.WorkflowSchedulerBenchmarks-report-github.md">调度器</a>。</p>
+  <p>BenchmarkDotNet 摘要与环境记录见<a href="benchmarks-20260804.md">已提交的基准摘要</a>。</p>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
 <script>
