@@ -181,6 +181,28 @@ public sealed class NodeRegistry
     }
 
     /// <summary>
+    /// 原子移除一批节点定义。
+    /// </summary>
+    /// <param name="typeIds">要移除的节点类型标识。</param>
+    internal void UnregisterRange(IEnumerable<string> typeIds)
+    {
+        ArgumentNullException.ThrowIfNull(typeIds);
+        var ids = typeIds.ToArray();
+        if (ids.Any(string.IsNullOrWhiteSpace))
+        {
+            throw new ArgumentException("节点类型标识不能包含空值。", nameof(typeIds));
+        }
+
+        lock (_sync)
+        {
+            foreach (var typeId in ids)
+            {
+                _definitions.Remove(typeId);
+            }
+        }
+    }
+
+    /// <summary>
     /// 按稳定类型标识获取节点定义。
     /// </summary>
     /// <param name="typeId">节点稳定类型标识。</param>

@@ -13,7 +13,7 @@ public sealed class PluginLoader : IDisposable
     private readonly NodeRegistry registry;
     private readonly string pluginDirectory;
     private readonly object sync = new();
-    private readonly List<PluginLoadContext> contexts = [];
+    private readonly List<LoadedPluginContext> contexts = [];
     private readonly List<PluginDiagnostic> diagnostics = [];
     private bool isDisposed;
 
@@ -51,51 +51,54 @@ public sealed class PluginLoader : IDisposable
     /// <returns>插件加载结果。</returns>
     public PluginLoadReport LoadAll()
     {
-        ThrowIfDisposed();
-        diagnostics.Clear();
+        lock (sync)
+        {
+            ThrowIfDisposed();
+            diagnostics.Clear();
 
-        if (!Directory.Exists(pluginDirectory))
-        {
-            return CreateReport(0, 0);
-        }
-
-        string[] assemblyPaths;
-        try
-        {
-            assemblyPaths = Directory
-                .EnumerateFiles(pluginDirectory, "*.dll", SearchOption.TopDirectoryOnly)
-                .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-        }
-        catch (Exception error)
-        {
-            AddDiagnostic(
-                pluginDirectory,
-                PluginDiagnosticSeverity.Error,
-                $"扫描插件目录失败：{error.Message}",
-                error);
-            return CreateReport(0, 0);
-        }
-
-        var loadedPluginCount = 0;
-        var registeredDefinitionCount = 0;
-        foreach (var assemblyPath in assemblyPaths)
-        {
-            if (string.Equals(Path.GetFileNameWithoutExtension(assemblyPath), CoreAssemblyName, StringComparison.OrdinalIgnoreCase))
+            if (!Directory.Exists(pluginDirectory))
             {
-                AddDiagnostic(
-                    assemblyPath,
-                    PluginDiagnosticSeverity.Warning,
-                    "跳过插件目录中的 FlowForge.Core.dll，以保持 Core 类型身份来自 Default 加载上下文。");
-                continue;
+                return CreateReport(0, 0);
             }
 
-            var result = LoadAssembly(assemblyPath);
-            loadedPluginCount += result.LoadedPluginCount;
-            registeredDefinitionCount += result.RegisteredDefinitionCount;
-        }
+            string[] assemblyPaths;
+            try
+            {
+                assemblyPaths = Directory
+                    .EnumerateFiles(pluginDirectory, "*.dll", SearchOption.TopDirectoryOnly)
+                    .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+            }
+            catch (Exception error)
+            {
+                AddDiagnostic(
+                    pluginDirectory,
+                    PluginDiagnosticSeverity.Error,
+                    $"扫描插件目录失败：{error.Message}",
+                    error);
+                return CreateReport(0, 0);
+            }
 
-        return CreateReport(loadedPluginCount, registeredDefinitionCount);
+            var loadedPluginCount = 0;
+            var registeredDefinitionCount = 0;
+            foreach (var assemblyPath in assemblyPaths)
+            {
+                if (string.Equals(Path.GetFileNameWithoutExtension(assemblyPath), CoreAssemblyName, StringComparison.OrdinalIgnoreCase))
+                {
+                    AddDiagnostic(
+                        assemblyPath,
+                        PluginDiagnosticSeverity.Warning,
+                        "跳过插件目录中的 FlowForge.Core.dll，以保持 Core 类型身份来自 Default 加载上下文。");
+                    continue;
+                }
+
+                var result = LoadAssembly(assemblyPath);
+                loadedPluginCount += result.LoadedPluginCount;
+                registeredDefinitionCount += result.RegisteredDefinitionCount;
+            }
+
+            return CreateReport(loadedPluginCount, registeredDefinitionCount);
+        }
     }
 
     /// <summary>
@@ -103,17 +106,19 @@ public sealed class PluginLoader : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (isDisposed)
-        {
-            return;
-        }
-
-        isDisposed = true;
         lock (sync)
         {
+            if (isDisposed)
+            {
+                return;
+            }
+
+            isDisposed = true;
             for (var index = contexts.Count - 1; index >= 0; index--)
             {
-                contexts[index].Unload();
+                var loadedPlugin = contexts[index];
+                registry.UnregisterRange(loadedPlugin.TypeIds);
+                loadedPlugin.Context.Unload();
             }
 
             contexts.Clear();
@@ -132,6 +137,7 @@ public sealed class PluginLoader : IDisposable
             var types = GetTypes(assembly, assemblyPath);
             var loadedPluginCount = 0;
             var registeredDefinitionCount = 0;
+            var registeredTypeIds = new List<string>();
 
             foreach (var type in types)
             {
@@ -158,6 +164,7 @@ public sealed class PluginLoader : IDisposable
                     var definitionBatch = definitions.ToArray();
 
                     registry.RegisterRange(definitionBatch);
+                    registeredTypeIds.AddRange(definitionBatch.Select(definition => definition.TypeId));
                     loadedPluginCount++;
                     registeredDefinitionCount += definitionBatch.Length;
                 }
@@ -175,7 +182,7 @@ public sealed class PluginLoader : IDisposable
             {
                 lock (sync)
                 {
-                    contexts.Add(context);
+                    contexts.Add(new LoadedPluginContext(context, registeredTypeIds.ToArray()));
                 }
             }
             else
@@ -250,4 +257,8 @@ public sealed class PluginLoader : IDisposable
     }
 
     private sealed record LoadAssemblyResult(int LoadedPluginCount, int RegisteredDefinitionCount);
+
+    private sealed record LoadedPluginContext(
+        PluginLoadContext Context,
+        IReadOnlyList<string> TypeIds);
 }

@@ -119,6 +119,38 @@ public sealed class PluginLoaderTests
         loader.Dispose();
     }
 
+    [Fact]
+    public void Dispose_RemovesPluginDefinitionsBeforeUnloadingContext()
+    {
+        using var directory = PluginDirectory.Create();
+        directory.CopySampleAssembly();
+        var registry = new NodeRegistry();
+
+        var weakContext = LoadSampleAndDispose(directory.Path, registry);
+
+        registry.TryGetDefinition("core.transform.uppercase", out _).Should().BeFalse();
+        for (var attempt = 0; attempt < 5 && weakContext.IsAlive; attempt++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+        }
+
+        weakContext.IsAlive.Should().BeFalse();
+    }
+
+    private static WeakReference LoadSampleAndDispose(string pluginDirectory, NodeRegistry registry)
+    {
+        var loader = new PluginLoader(registry, pluginDirectory);
+        loader.LoadAll();
+        var definition = registry.GetDefinition("core.transform.uppercase");
+        var context = AssemblyLoadContext.GetLoadContext(definition.ConfigType.Assembly);
+        var weakContext = new WeakReference(context);
+
+        loader.Dispose();
+        return weakContext;
+    }
+
     public sealed class ExplicitTestPlugin : INodePlugin
     {
         public IReadOnlyList<NodeDefinition> Definitions { get; } =
@@ -210,6 +242,19 @@ public sealed class PluginLoaderTests
         public void CopyAssembly(string sourcePath, string fileName)
         {
             File.Copy(sourcePath, System.IO.Path.Combine(Path, fileName));
+        }
+
+        public void CopySampleAssembly()
+        {
+            CopyAssembly(
+                GetRepositoryRootPath(
+                    "src",
+                    "FlowForge.Plugins.Sample",
+                    "bin",
+                    "Release",
+                    "net8.0",
+                    "FlowForge.Plugins.Sample.dll"),
+                "FlowForge.Plugins.Sample.dll");
         }
 
         public void Dispose()
