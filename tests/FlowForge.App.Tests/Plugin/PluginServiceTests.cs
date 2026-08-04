@@ -59,7 +59,7 @@ public sealed class PluginServiceTests
         GC.WaitForPendingFinalizers();
         GC.Collect();
 
-        var deleteDirectory = () => Directory.Delete(directory.Path, recursive: true);
+        var deleteDirectory = directory.DeleteRecursively;
         deleteDirectory.Should().NotThrow();
     }
 
@@ -127,32 +127,50 @@ public sealed class PluginServiceTests
 
         public void Dispose()
         {
-            for (var attempt = 0; attempt < 5 && Directory.Exists(Path); attempt++)
+            try
+            {
+                DeleteRecursively();
+            }
+            catch (Exception error)
+            {
+                Trace.WriteLine($"测试临时插件目录清理延迟：{error.Message}");
+            }
+        }
+
+        public void DeleteRecursively()
+        {
+            Exception? lastError = null;
+            for (var attempt = 0; attempt < 20 && Directory.Exists(Path); attempt++)
             {
                 try
                 {
                     Directory.Delete(Path, recursive: true);
+                    return;
                 }
-                catch (IOException) when (attempt < 4)
+                catch (IOException error) when (attempt < 19)
                 {
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    GC.Collect();
-                    Thread.Sleep(50);
+                    lastError = error;
+                    WaitForPluginHandles();
                 }
-                catch (UnauthorizedAccessException) when (attempt < 4)
+                catch (UnauthorizedAccessException error) when (attempt < 19)
                 {
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    GC.Collect();
-                    Thread.Sleep(50);
-                }
-                catch (Exception error)
-                {
-                    Trace.WriteLine($"测试临时插件目录清理延迟：{error.Message}");
-                    break;
+                    lastError = error;
+                    WaitForPluginHandles();
                 }
             }
+
+            if (Directory.Exists(Path))
+            {
+                throw new IOException("测试临时插件目录在等待可收集插件句柄释放后仍无法删除。", lastError);
+            }
+        }
+
+        private static void WaitForPluginHandles()
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            Thread.Sleep(100);
         }
     }
 
