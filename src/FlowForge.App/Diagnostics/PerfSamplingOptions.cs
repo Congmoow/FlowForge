@@ -34,6 +34,9 @@ public sealed record PerfSamplingOptions
     /// <summary>性能 JSON 输出路径；为空时不写文件。</summary>
     public string? OutputPath { get; init; }
 
+    /// <summary>真实窗口渲染截图输出路径；为空时不保存截图。</summary>
+    public string? ScreenshotPath { get; init; }
+
     /// <summary>
     /// 验证采样参数。
     /// </summary>
@@ -94,6 +97,7 @@ public sealed record PerfSamplingOptions
         var nodeCount = 1000;
         var seed = DefaultSeed;
         string? outputPath = null;
+        string? screenshotPath = null;
 
         for (var index = 0; index < args.Count; index++)
         {
@@ -119,6 +123,12 @@ public sealed record PerfSamplingOptions
             if (TryReadOption(argument, "--output", args, ref index, out var pathValue))
             {
                 outputPath = pathValue;
+                continue;
+            }
+
+            if (TryReadOption(argument, "--screenshot", args, ref index, out var screenshotValue))
+            {
+                screenshotPath = screenshotValue;
             }
         }
 
@@ -127,6 +137,7 @@ public sealed record PerfSamplingOptions
             NodeCount = nodeCount,
             Seed = seed,
             OutputPath = outputPath,
+            ScreenshotPath = screenshotPath,
         };
 
         if (perf)

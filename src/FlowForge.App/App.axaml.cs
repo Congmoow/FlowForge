@@ -122,6 +122,10 @@ public partial class App : Application
                 runOptions,
                 new Progress<PerfSample>(viewModel.PerfHud.ApplySample));
             viewModel.PerfHud.Complete(result);
+            if (!string.IsNullOrWhiteSpace(options.ScreenshotPath))
+            {
+                PerfScreenshotExporter.Save(window, options.ScreenshotPath);
+            }
             Trace.WriteLine(
                 $"性能采样完成：节点={result.NodeCount}，平均 FPS={result.AverageFramesPerSecond:F2}，" +
                 $"峰值内存={result.PeakWorkingSetBytes} bytes，样本={result.Samples.Count}。");
