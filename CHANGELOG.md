@@ -17,3 +17,8 @@
 - 添加 Run/Stop 命令、节点 idle/running/success/failed 四态高亮，以及预置 CSV→Console 桌面执行入口。
 - 新增 `samples/csv-to-console.ffw`、真实 CSV 数据和端到端集成测试，并接受 ADR-0003 Channel 执行契约。
 - 完成 Stage 4：跨平台密钥存储、OpenAI/DeepSeek 节点、`.ffw` schema v1 与迁移、文件菜单、撤销重做和 CSV 摘要集成样例。
+- 完成 Stage 5 画布性能基础：world/view 视口导航、自适应网格、节点与贝塞尔边剔除、按节点/边拆分的 retained draw operation，以及确定性的 100/250/500/1000 节点 dev/perf 场景。
+- 新增 BenchmarkDotNet 0.15.8 的拓扑排序与 WorkflowScheduler/Channel 基准、FPS HUD、真实 Release JSON 采样和 Chart.js 4.5.1 性能报告。
+- 新增 Foreach、Regex Extract、File Writer 节点；NodeRegistry、PortFactory、ConfigField 属性面板和六类编辑器；Password 配置继续只保存稳定 secret reference。
+- 新增显式 `INodePlugin` 注册、可卸载依赖隔离加载器、示例插件和 App 的 `plugins` 目录扫描；失败插件形成诊断但不阻断其他插件。
+- 当前性能报告中的 FPS/WorkingSet64 来自真实窗口；renderer 级 dirty rect 小于整画布的证据仍需在 Avalonia renderer 边界完成，未将 retained scene 的本地 bounds 冒充为该结论。
