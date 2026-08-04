@@ -3,6 +3,7 @@ using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Rendering.SceneGraph;
 using FlowForge.App.Controls;
+using System.Collections.Immutable;
 
 namespace FlowForge.App.Canvas;
 
@@ -12,6 +13,8 @@ namespace FlowForge.App.Canvas;
 public sealed class EdgeDrawOperation : ICustomDrawOperation
 {
     private readonly ImmutablePen pen;
+    private readonly (Point First, Point Second) controlPoints;
+    private readonly ImmutableArray<Point> renderPoints;
     private bool disposed;
 
     /// <summary>初始化连线绘制操作。</summary>
@@ -19,7 +22,13 @@ public sealed class EdgeDrawOperation : ICustomDrawOperation
     public EdgeDrawOperation(EdgeDrawSnapshot snapshot)
     {
         Snapshot = snapshot;
+        controlPoints = BezierEdgeShape.CalculateControlPoints(snapshot.StartPoint, snapshot.EndPoint);
         Geometry = BezierEdgeShape.CreateGeometry(snapshot.StartPoint, snapshot.EndPoint);
+        Bounds = BezierBounds.GetBounds(
+            snapshot.StartPoint,
+            snapshot.EndPoint,
+            snapshot.StrokeWidth);
+        renderPoints = CreateRenderPoints(snapshot.StartPoint, snapshot.EndPoint, controlPoints);
         pen = new ImmutablePen(
             new ImmutableSolidColorBrush(Color.Parse("#64748B")),
             snapshot.StrokeWidth,
@@ -35,14 +44,11 @@ public sealed class EdgeDrawOperation : ICustomDrawOperation
     /// <summary>缓存的贝塞尔几何。</summary>
     public PathGeometry Geometry { get; }
 
+    /// <summary>缓存的连线 world bounds。</summary>
+    public Rect Bounds { get; }
+
     /// <summary>操作是否已经释放。</summary>
     public bool IsDisposed => disposed;
-
-    /// <inheritdoc />
-    public Rect Bounds => BezierBounds.GetBounds(
-        Snapshot.StartPoint,
-        Snapshot.EndPoint,
-        Snapshot.StrokeWidth);
 
     /// <inheritdoc />
     public bool HitTest(Point p)
@@ -52,7 +58,7 @@ public sealed class EdgeDrawOperation : ICustomDrawOperation
             return false;
         }
 
-        var controls = BezierEdgeShape.CalculateControlPoints(Snapshot.StartPoint, Snapshot.EndPoint);
+        var controls = controlPoints;
         var previous = Snapshot.StartPoint;
         var tolerance = Math.Max(4, Snapshot.StrokeWidth / 2 + 2);
         for (var index = 1; index <= 24; index++)
@@ -84,23 +90,9 @@ public sealed class EdgeDrawOperation : ICustomDrawOperation
     {
         ObjectDisposedException.ThrowIf(disposed, this);
 
-        var controls = BezierEdgeShape.CalculateControlPoints(Snapshot.StartPoint, Snapshot.EndPoint);
-        var previous = Snapshot.StartPoint;
-        for (var index = 1; index <= 24; index++)
+        for (var index = 1; index < renderPoints.Length; index++)
         {
-            var t = index / 24d;
-            var inverse = 1 - t;
-            var current = new Point(
-                inverse * inverse * inverse * Snapshot.StartPoint.X
-                    + 3 * inverse * inverse * t * controls.First.X
-                    + 3 * inverse * t * t * controls.Second.X
-                    + t * t * t * Snapshot.EndPoint.X,
-                inverse * inverse * inverse * Snapshot.StartPoint.Y
-                    + 3 * inverse * inverse * t * controls.First.Y
-                    + 3 * inverse * t * t * controls.Second.Y
-                    + t * t * t * Snapshot.EndPoint.Y);
-            context.DrawLine(pen, previous, current);
-            previous = current;
+            context.DrawLine(pen, renderPoints[index - 1], renderPoints[index]);
         }
     }
 
@@ -127,6 +119,31 @@ public sealed class EdgeDrawOperation : ICustomDrawOperation
     public void Dispose()
     {
         disposed = true;
+    }
+
+    private static ImmutableArray<Point> CreateRenderPoints(
+        Point startPoint,
+        Point endPoint,
+        (Point First, Point Second) controls)
+    {
+        var points = ImmutableArray.CreateBuilder<Point>(25);
+        points.Add(startPoint);
+        for (var index = 1; index <= 24; index++)
+        {
+            var t = index / 24d;
+            var inverse = 1 - t;
+            points.Add(new Point(
+                inverse * inverse * inverse * startPoint.X
+                    + 3 * inverse * inverse * t * controls.First.X
+                    + 3 * inverse * t * t * controls.Second.X
+                    + t * t * t * endPoint.X,
+                inverse * inverse * inverse * startPoint.Y
+                    + 3 * inverse * inverse * t * controls.First.Y
+                    + 3 * inverse * t * t * controls.Second.Y
+                    + t * t * t * endPoint.Y));
+        }
+
+        return points.MoveToImmutable();
     }
 
     private static double DistanceToSegment(Point point, Point start, Point end)
