@@ -113,6 +113,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         this.nodeRegistry = nodeRegistry;
         Canvas = new CanvasViewModel(commandHistory, nodeRegistry);
         Toolbox = new ToolboxViewModel(nodeRegistry);
+        PropertyPanel = new PropertyPanelViewModel(Canvas);
         if (legacyMode)
         {
             SeedLegacyCanvas();
@@ -169,6 +170,11 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     /// 左侧节点库。
     /// </summary>
     public ToolboxViewModel Toolbox { get; }
+
+    /// <summary>
+    /// 右侧节点属性面板。
+    /// </summary>
+    public PropertyPanelViewModel PropertyPanel { get; }
 
     /// <summary>
     /// 获取异步运行预置工作流的命令。
@@ -235,6 +241,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         SaveAsCommand.Dispose();
         UndoCommand.Dispose();
         RedoCommand.Dispose();
+        PropertyPanel.Dispose();
         PerfHud.Dispose();
         GC.SuppressFinalize(this);
     }

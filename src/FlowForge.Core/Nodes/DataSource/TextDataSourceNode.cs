@@ -9,7 +9,9 @@ namespace FlowForge.Core.Nodes.DataSource;
 /// <param name="FilePath">要读取的文本文件路径。</param>
 /// <param name="Encoding">用于读取文件的编码名称。</param>
 public sealed record TextDataSourceConfig(
+    [property: ConfigField(Label = "文件路径", Editor = "FilePicker", Required = true, Order = 0)]
     string FilePath = "",
+    [property: ConfigField(Label = "编码", Editor = "ComboBox", Options = "utf-8,utf-16,unicode", Order = 1)]
     string Encoding = "utf-8") : INodeConfig;
 
 /// <summary>

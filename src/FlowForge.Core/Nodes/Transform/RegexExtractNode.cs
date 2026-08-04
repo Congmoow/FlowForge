@@ -10,7 +10,9 @@ namespace FlowForge.Core.Nodes.Transform;
 /// <param name="Pattern">用于匹配文本的正则表达式。</param>
 /// <param name="Group">要输出的捕获组编号。</param>
 public sealed record RegexExtractNodeConfig(
+    [property: ConfigField(Label = "正则表达式", Editor = "MultilineText", Required = true, Order = 0)]
     string Pattern = "",
+    [property: ConfigField(Label = "捕获组", Editor = "NumericUpDown", Min = 0, Order = 1)]
     int Group = 0) : INodeConfig;
 
 /// <summary>
