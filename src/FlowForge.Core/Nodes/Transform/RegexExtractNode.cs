@@ -118,13 +118,17 @@ public sealed class RegexExtractNode : INode
             MatchTimeout);
         ValidateGroup(regex, _config.Group);
 
-        var matches = regex.Matches(text ?? string.Empty)
-            .Cast<Match>()
-            .Select(match => match.Groups[_config.Group].Value)
-            .ToArray();
+        var values = new List<string>();
+        var match = regex.Match(text ?? string.Empty);
+        while (match.Success)
+        {
+            ct.ThrowIfCancellationRequested();
+            values.Add(match.Groups[_config.Group].Value);
+            match = match.NextMatch();
+        }
 
         ct.ThrowIfCancellationRequested();
-        await ctx.WriteAsync(MatchesOutput, matches, ct).ConfigureAwait(false);
+        await ctx.WriteAsync(MatchesOutput, values.ToArray(), ct).ConfigureAwait(false);
     }
 
     private static void ValidateGroup(Regex regex, int group)
