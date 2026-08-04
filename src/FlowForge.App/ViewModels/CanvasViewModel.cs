@@ -4,6 +4,7 @@ using Avalonia;
 using CommandHistory = FlowForge.App.Commands.CommandHistory;
 using CompositeCommand = FlowForge.App.Commands.CompositeCommand;
 using MoveNodeEditCommand = FlowForge.App.Commands.MoveNodeEditCommand;
+using FlowForge.Core.Serialization;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
@@ -15,12 +16,15 @@ namespace FlowForge.App.ViewModels;
 public sealed class CanvasViewModel : ReactiveObject
 {
     private readonly CommandHistory _commandHistory;
+    private readonly NodeRegistry _registry;
+
     /// <summary>
     /// 初始化画布 ViewModel。
     /// </summary>
-    public CanvasViewModel(CommandHistory? commandHistory = null)
+    public CanvasViewModel(CommandHistory? commandHistory = null, NodeRegistry? registry = null)
     {
         _commandHistory = commandHistory ?? new CommandHistory();
+        _registry = registry ?? NodeRegistry.CreateDefault();
         MoveNodeCommand = ReactiveCommand.Create<MoveNodeRequest>(MoveNode);
         MoveSelectedNodesCommand = ReactiveCommand.Create<Vector>(MoveSelectedNodes);
         SelectNodeCommand = ReactiveCommand.Create<SelectNodeRequest>(SelectNode);
@@ -31,6 +35,16 @@ public sealed class CanvasViewModel : ReactiveObject
         PreviewEdgeTargetCommand = ReactiveCommand.Create<PortViewModel?>(PreviewEdgeTarget);
         CompleteEdgeDragCommand = ReactiveCommand.Create<PortViewModel>(CompleteEdgeDrag);
         CancelEdgeDragCommand = ReactiveCommand.Create(CancelEdgeDrag);
+    }
+
+    /// <summary>
+    /// 使用指定节点目录初始化画布 ViewModel。
+    /// </summary>
+    /// <param name="registry">提供节点创建能力的目录。</param>
+    /// <param name="commandHistory">可选的共享命令历史。</param>
+    public CanvasViewModel(NodeRegistry registry, CommandHistory? commandHistory = null)
+        : this(commandHistory, registry)
+    {
     }
 
     /// <summary>
@@ -115,6 +129,31 @@ public sealed class CanvasViewModel : ReactiveObject
     public CommandHistory CommandHistory => _commandHistory;
 
     /// <summary>
+    /// 原子替换画布中的节点和连线集合。
+    /// </summary>
+    /// <param name="nodes">已经完成校验的新节点集合。</param>
+    /// <param name="edges">已经完成校验的新连线集合。</param>
+    public void ReplaceContents(IEnumerable<NodeViewModel> nodes, IEnumerable<EdgeViewModel> edges)
+    {
+        ArgumentNullException.ThrowIfNull(nodes);
+        ArgumentNullException.ThrowIfNull(edges);
+
+        var nodeSnapshot = nodes.ToArray();
+        var edgeSnapshot = edges.ToArray();
+        Nodes.Clear();
+        Edges.Clear();
+        foreach (var node in nodeSnapshot)
+        {
+            Nodes.Add(node);
+        }
+
+        foreach (var edge in edgeSnapshot)
+        {
+            Edges.Add(edge);
+        }
+    }
+
+    /// <summary>
     /// 将已完成的一次节点拖动写入命令历史。
     /// </summary>
     /// <param name="originalPositions">拖动开始时按节点记录的位置。</param>
@@ -187,7 +226,20 @@ public sealed class CanvasViewModel : ReactiveObject
 
     private void AddNodeFromTemplate(AddNodeFromTemplateRequest request)
     {
-        var node = new NodeViewModel(Guid.NewGuid(), request.Template.TypeId, request.Template.Title, request.Position.X, request.Position.Y);
+        if (_registry.TryGetDefinition(request.Template.TypeId, out var definition)
+            && definition is not null)
+        {
+            var model = definition.Create(Guid.NewGuid());
+            Nodes.Add(new NodeViewModel(model, definition, request.Position.X, request.Position.Y));
+            return;
+        }
+
+        var node = new NodeViewModel(
+            Guid.NewGuid(),
+            request.Template.TypeId,
+            request.Template.Title,
+            request.Position.X,
+            request.Position.Y);
 
         for (var index = 0; index < request.Template.Inputs.Count; index++)
         {

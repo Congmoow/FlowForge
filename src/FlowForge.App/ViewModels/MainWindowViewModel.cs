@@ -1,12 +1,14 @@
 using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Text.Json;
 using FlowForge.App.Commands;
 using FlowForge.App.Diagnostics;
 using FlowForge.App.Services;
 using FlowForge.Core.Execution;
+using FlowForge.Core.Graph;
 using FlowForge.Core.Serialization;
-using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
@@ -17,8 +19,10 @@ namespace FlowForge.App.ViewModels;
 /// </summary>
 public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 {
-    private readonly IStage3WorkflowRunner workflowRunner;
+    private readonly IWorkflowRunner? workflowRunner;
+    private readonly IStage3WorkflowRunner? legacyWorkflowRunner;
     private readonly IWorkflowFileService workflowFileService;
+    private readonly NodeRegistry nodeRegistry;
     private readonly CommandHistory commandHistory = new();
     private WorkflowDocument? currentDocument;
     private CancellationTokenSource? runCancellation;
@@ -28,7 +32,10 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     /// 初始化主窗口 ViewModel。
     /// </summary>
     public MainWindowViewModel()
-        : this(new Stage3SampleWorkflowRunner(new WorkflowScheduler()), new AvaloniaWorkflowFileService())
+        : this(
+            new WorkflowRunner(new WorkflowScheduler()),
+            new AvaloniaWorkflowFileService(),
+            NodeRegistry.CreateDefault())
     {
     }
 
@@ -47,26 +54,69 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     /// <param name="workflowRunner">Stage 3 示例工作流运行器。</param>
     /// <param name="workflowFileService">工作流文件服务。</param>
     public MainWindowViewModel(IStage3WorkflowRunner workflowRunner, IWorkflowFileService workflowFileService)
+        : this(
+            null,
+            workflowRunner,
+            workflowFileService,
+            NodeRegistry.CreateDefault(),
+            legacyMode: true)
     {
-        ArgumentNullException.ThrowIfNull(workflowRunner);
-        ArgumentNullException.ThrowIfNull(workflowFileService);
-        this.workflowRunner = workflowRunner;
-        this.workflowFileService = workflowFileService;
-        Canvas = new CanvasViewModel(commandHistory);
-        Toolbox = new ToolboxViewModel();
-        var csvNode = new NodeViewModel(Guid.Parse("11111111-1111-1111-1111-111111111111"), "core.datasource.csv", "CSV 读取", 96, 80);
-        csvNode.Outputs.Add(new PortViewModel(
-            csvNode,
-            "rows",
-            "rows",
-            PortDirection.Output,
-            typeof(IEnumerable<Dictionary<string, string>>),
-            0));
-        Canvas.Nodes.Add(csvNode);
+    }
 
-        var consoleNode = new NodeViewModel(Guid.Parse("22222222-2222-2222-2222-222222222222"), "core.sink.console", "控制台输出", 420, 120);
-        consoleNode.Inputs.Add(new PortViewModel(consoleNode, "value", "value", PortDirection.Input, typeof(object), 0));
-        Canvas.Nodes.Add(consoleNode);
+    /// <summary>
+    /// 使用当前画布工作流运行器、文件服务和节点目录初始化主窗口 ViewModel。
+    /// </summary>
+    /// <param name="workflowRunner">执行当前画布工作流的运行器。</param>
+    /// <param name="workflowFileService">工作流文件服务。</param>
+    /// <param name="nodeRegistry">统一节点目录。</param>
+    [ActivatorUtilitiesConstructor]
+    public MainWindowViewModel(
+        IWorkflowRunner workflowRunner,
+        IWorkflowFileService workflowFileService,
+        NodeRegistry nodeRegistry)
+        : this(workflowRunner, null, workflowFileService, nodeRegistry, legacyMode: false)
+    {
+    }
+
+    /// <summary>
+    /// 使用当前画布工作流运行器和文件服务初始化主窗口 ViewModel。
+    /// </summary>
+    /// <param name="workflowRunner">执行当前画布工作流的运行器。</param>
+    /// <param name="workflowFileService">工作流文件服务。</param>
+    public MainWindowViewModel(IWorkflowRunner workflowRunner, IWorkflowFileService workflowFileService)
+        : this(workflowRunner, workflowFileService, NodeRegistry.CreateDefault())
+    {
+    }
+
+    private MainWindowViewModel(
+        IWorkflowRunner? workflowRunner,
+        IStage3WorkflowRunner? legacyWorkflowRunner,
+        IWorkflowFileService workflowFileService,
+        NodeRegistry nodeRegistry,
+        bool legacyMode)
+    {
+        ArgumentNullException.ThrowIfNull(workflowFileService);
+        ArgumentNullException.ThrowIfNull(nodeRegistry);
+        if (legacyMode && legacyWorkflowRunner is null)
+        {
+            throw new ArgumentNullException(nameof(legacyWorkflowRunner));
+        }
+
+        if (!legacyMode && workflowRunner is null)
+        {
+            throw new ArgumentNullException(nameof(workflowRunner));
+        }
+
+        this.workflowRunner = workflowRunner;
+        this.legacyWorkflowRunner = legacyWorkflowRunner;
+        this.workflowFileService = workflowFileService;
+        this.nodeRegistry = nodeRegistry;
+        Canvas = new CanvasViewModel(commandHistory, nodeRegistry);
+        Toolbox = new ToolboxViewModel(nodeRegistry);
+        if (legacyMode)
+        {
+            SeedLegacyCanvas();
+        }
 
         var canRun = this.WhenAnyValue(viewModel => viewModel.IsRunning).Select(isRunning => !isRunning);
         var canStop = this.WhenAnyValue(viewModel => viewModel.IsRunning);
@@ -193,7 +243,9 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     {
         ResetNodeStates();
         IsRunning = true;
-        StatusMessage = "正在运行示例工作流…";
+        StatusMessage = legacyWorkflowRunner is null
+            ? "正在运行工作流…"
+            : "正在运行示例工作流…";
         runCancellation = new CancellationTokenSource();
         var synchronizationContext = SynchronizationContext.Current;
         var progress = new CallbackProgress<NodeExecutionEvent>(executionEvent =>
@@ -201,8 +253,18 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         try
         {
-            await workflowRunner.RunAsync(progress, runCancellation.Token);
-            StatusMessage = "示例工作流运行完成。";
+            if (legacyWorkflowRunner is not null)
+            {
+                await legacyWorkflowRunner.RunAsync(progress, runCancellation.Token);
+            }
+            else
+            {
+                await workflowRunner!.RunAsync(CreateCurrentWorkflow(), progress, runCancellation.Token);
+            }
+
+            StatusMessage = legacyWorkflowRunner is null
+                ? "工作流运行完成。"
+                : "示例工作流运行完成。";
         }
         catch (OperationCanceledException) when (runCancellation.IsCancellationRequested)
         {
@@ -213,13 +275,13 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         {
             ApplyNodeEvent(new NodeExecutionEvent(error.NodeId, NodeExecutionStatus.Failed, error.InnerException));
             StatusMessage = $"运行失败：{error.InnerException?.Message ?? error.Message}";
-            Trace.TraceError("Stage 3 示例工作流运行失败：{0}", error);
+            Trace.TraceError("工作流运行失败：{0}", error);
         }
         catch (Exception error)
         {
             ResetRunningNodes(NodeExecutionVisualState.Failed);
             StatusMessage = $"运行失败：{error.Message}";
-            Trace.TraceError("Stage 3 示例工作流运行失败：{0}", error);
+            Trace.TraceError("工作流运行失败：{0}", error);
         }
         finally
         {
@@ -246,16 +308,25 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     private async Task OpenAsync()
     {
-        var result = await workflowFileService.OpenAsync();
-        if (result is null)
+        try
         {
-            return;
-        }
+            var result = await workflowFileService.OpenAsync();
+            if (result is null)
+            {
+                return;
+            }
 
-        ApplyDocument(result.Document);
-        currentDocument = result.Document;
-        CurrentFilePath = result.Path;
-        StatusMessage = $"已打开 {Path.GetFileName(result.Path)}。";
+            var candidate = CreateCanvasState(result.Document);
+            Canvas.ReplaceContents(candidate.Nodes, candidate.Edges);
+            currentDocument = result.Document;
+            CurrentFilePath = result.Path;
+            StatusMessage = $"已打开 {Path.GetFileName(result.Path)}。";
+        }
+        catch (Exception error)
+        {
+            StatusMessage = $"打开失败：{error.Message}";
+            Trace.TraceError("工作流打开失败：{0}", error);
+        }
     }
 
     private async Task SaveAsync(bool saveAs)
@@ -272,53 +343,69 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         StatusMessage = $"已保存 {Path.GetFileName(path)}。";
     }
 
-    private void ApplyDocument(WorkflowDocument document)
+    /// <summary>
+    /// 将当前画布的真实节点和连线构建为 Core 工作流。
+    /// </summary>
+    /// <returns>当前画布工作流。</returns>
+    public Workflow CreateCurrentWorkflow()
     {
-        Canvas.Nodes.Clear();
-        Canvas.Edges.Clear();
+        var workflow = new Workflow();
+        foreach (var node in Canvas.Nodes)
+        {
+            workflow.AddNode(node.Node);
+        }
+
+        foreach (var edge in Canvas.Edges.Where(edge => edge.Target is not null))
+        {
+            workflow.AddEdge(new WorkflowEdge(
+                edge.Id,
+                edge.Source.Node.Id,
+                edge.Source.Id,
+                edge.Target!.Node.Id,
+                edge.Target.Id));
+        }
+
+        return workflow;
+    }
+
+    private (IReadOnlyList<NodeViewModel> Nodes, IReadOnlyList<EdgeViewModel> Edges) CreateCanvasState(
+        WorkflowDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        var workflow = WorkflowSerializer.CreateWorkflow(document, nodeRegistry);
+        var modelsById = workflow.Nodes.ToDictionary(node => node.Id);
+        var viewModelsById = new Dictionary<Guid, NodeViewModel>();
 
         foreach (var nodeDocument in document.Nodes)
         {
-            var template = Toolbox.Templates.FirstOrDefault(candidate => candidate.TypeId == nodeDocument.TypeId);
-            var node = new NodeViewModel(
+            var model = modelsById[nodeDocument.Id];
+            var definition = nodeRegistry.GetDefinition(nodeDocument.TypeId);
+            viewModelsById.Add(
                 nodeDocument.Id,
-                nodeDocument.TypeId,
-                template?.Title ?? nodeDocument.TypeId,
-                nodeDocument.Position.X,
-                nodeDocument.Position.Y);
-            if (template is not null)
-            {
-                foreach (var input in template.Inputs.Select((value, index) => (value, index)))
-                {
-                    node.Inputs.Add(new PortViewModel(node, input.value.Id, input.value.DisplayName, input.value.Direction, input.value.DataType, input.index));
-                }
-
-                foreach (var output in template.Outputs.Select((value, index) => (value, index)))
-                {
-                    node.Outputs.Add(new PortViewModel(node, output.value.Id, output.value.DisplayName, output.value.Direction, output.value.DataType, output.index));
-                }
-            }
-
-            Canvas.Nodes.Add(node);
+                new NodeViewModel(model, definition, nodeDocument.Position.X, nodeDocument.Position.Y));
         }
 
+        var edges = new List<EdgeViewModel>(document.Edges.Count);
         foreach (var edge in document.Edges)
         {
-            var source = Canvas.Nodes.Single(node => node.Id == edge.SourceNodeId).Outputs.Single(port => port.Id == edge.SourcePortId);
-            var target = Canvas.Nodes.Single(node => node.Id == edge.TargetNodeId).Inputs.Single(port => port.Id == edge.TargetPortId);
-            Canvas.Edges.Add(new EdgeViewModel(edge.Id, source, target));
+            var source = viewModelsById[edge.SourceNodeId].Outputs.Single(port => port.Id == edge.SourcePortId);
+            var target = viewModelsById[edge.TargetNodeId].Inputs.Single(port => port.Id == edge.TargetPortId);
+            edges.Add(new EdgeViewModel(edge.Id, source, target));
         }
+
+        return (viewModelsById.Values.ToArray(), edges);
     }
 
     private WorkflowDocument BuildDocument()
     {
-        var previousConfigs = currentDocument?.Nodes.ToDictionary(node => node.Id, node => node.Config)
-            ?? new Dictionary<Guid, JsonElement>();
         var nodes = Canvas.Nodes.Select(node => new WorkflowNodeDocument(
             node.Id,
             node.TypeId,
             new WorkflowNodePosition(node.Position.X, node.Position.Y),
-            previousConfigs.TryGetValue(node.Id, out var config) ? config : JsonSerializer.SerializeToElement(new { }))).ToArray();
+            JsonSerializer.SerializeToElement(
+                node.Config,
+                node.Config.GetType(),
+                WorkflowJsonSerializerOptions.Default))).ToArray();
         var edges = Canvas.Edges.Where(edge => edge.Target is not null).Select(edge => new WorkflowEdgeDocument(
             edge.Id,
             edge.Source.Node.Id,
@@ -328,6 +415,39 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         var metadata = currentDocument?.Metadata
             ?? new WorkflowMetadata("未命名工作流", DateTimeOffset.UtcNow, "0.1.0");
         return new WorkflowDocument(metadata, nodes, edges);
+    }
+
+    private void SeedLegacyCanvas()
+    {
+        var csvNode = new NodeViewModel(
+            Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            "core.datasource.csv",
+            "CSV 读取",
+            96,
+            80);
+        csvNode.Outputs.Add(new PortViewModel(
+            csvNode,
+            "rows",
+            "rows",
+            PortDirection.Output,
+            typeof(IEnumerable<Dictionary<string, string>>),
+            0));
+        Canvas.Nodes.Add(csvNode);
+
+        var consoleNode = new NodeViewModel(
+            Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            "core.sink.console",
+            "控制台输出",
+            420,
+            120);
+        consoleNode.Inputs.Add(new PortViewModel(
+            consoleNode,
+            "value",
+            "value",
+            PortDirection.Input,
+            typeof(object),
+            0));
+        Canvas.Nodes.Add(consoleNode);
     }
 
     private void DispatchProgress(SynchronizationContext? synchronizationContext, NodeExecutionEvent executionEvent)
