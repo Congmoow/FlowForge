@@ -1,7 +1,7 @@
 # ADR-0004: 视口导航、虚拟化与增量绘制策略
 
 **Status**: Proposed
-**Date**: 2026-08-03
+**Date**: 2026-08-04
 
 ## Context
 
@@ -37,5 +37,13 @@ world/view 坐标模型。仅在绘制阶段 PushClip 或保存待处理矩形�
 
 ## Validation Plan
 
-实现完成后补充真实测试路径、操作文件和性能数据；在没有 renderer 级 dirty rect
-与 Release 1000 节点测量前，本 ADR 不得改为 `Accepted`。
+已完成的可复现验证包括 `tests/FlowForge.App.Tests/Canvas/CanvasCullingTests.cs`、
+`BezierBoundsTests.cs` 和 `DirtyRegionTests.cs`，以及
+`docs/perf/fps-vs-node-count.html` 中记录的 Release 窗口测量。
+
+2026-08-04 的真实 renderer smoke 在单节点移动后通过
+`IRenderer.SceneInvalidated` 观察到的矩形为 1200 × 760，与窗口根边界相同；
+`RendererDebugOverlays.DirtyRects` 也只能作为 renderer 诊断入口，不能把
+`RetainedCanvasScene.LastDirtyRect` 的本地 union 冒充为 renderer 局部失效证据。
+因此本 ADR 按原验收合同继续保持 `Proposed`，在取得小于整画布的 renderer 证据
+前不得改为 `Accepted`。

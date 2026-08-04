@@ -1,7 +1,7 @@
 # ADR-0005: 插件加载隔离与节点注册策略
 
-**Status**: Proposed
-**Date**: 2026-08-03
+**Status**: Accepted
+**Date**: 2026-08-04
 
 ## Context
 
@@ -38,5 +38,9 @@ FlowForge 需要让外部 DLL 提供节点定义，同时保持 `FlowForge.Core`
 
 ## Validation Plan
 
-实现完成后补充有效、损坏、缺依赖、重复 TypeId、Core 类型身份、原子注册、示例插件
-加载和卸载测试；在这些测试及应用关闭 smoke 通过前，本 ADR 不得改为 `Accepted`。
+以下验证已完成：`tests/FlowForge.Core.Tests/Plugin/PluginLoaderTests.cs` 覆盖有效、
+损坏、缺依赖、`ReflectionTypeLoadException`、重复 TypeId、Core Default context
+类型身份、原子注册和卸载；`SamplePluginTests.cs` 验证示例插件定义和同一 Core 引用；
+`tests/FlowForge.App.Tests/Plugin/PluginServiceTests.cs` 验证无目录和诊断路径。
+Release solution build/test 还覆盖了 App 启动扫描、Toolbox 状态更新和关闭时资源
+释放调用链。
