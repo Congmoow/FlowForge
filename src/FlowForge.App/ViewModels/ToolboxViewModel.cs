@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using FlowForge.Core.Abstractions;
+using FlowForge.Core.Serialization;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
@@ -13,29 +15,23 @@ public sealed class ToolboxViewModel : ReactiveObject
     /// 初始化节点库 ViewModel。
     /// </summary>
     public ToolboxViewModel()
+        : this(NodeRegistry.CreateDefault())
     {
-        Templates =
-        [
-            new NodeTemplateViewModel(
-                "core.datasource.csv",
-                "CSV 读取",
-                [],
-                [new PortTemplateViewModel(
-                    "rows",
-                    "rows",
-                    PortDirection.Output,
-                    typeof(IEnumerable<Dictionary<string, string>>))]),
-            new NodeTemplateViewModel(
-                "core.datasource.text",
-                "文本读取",
-                [],
-                [new PortTemplateViewModel("content", "content", PortDirection.Output, typeof(string))]),
-            new NodeTemplateViewModel(
-                "core.sink.console",
-                "控制台输出",
-                [new PortTemplateViewModel("value", "value", PortDirection.Input, typeof(object))],
-                []),
-        ];
+    }
+
+    /// <summary>
+    /// 使用节点目录初始化节点库 ViewModel。
+    /// </summary>
+    /// <param name="registry">提供节点定义的目录。</param>
+    public ToolboxViewModel(NodeRegistry registry)
+    {
+        ArgumentNullException.ThrowIfNull(registry);
+
+        Templates = new ObservableCollection<NodeTemplateViewModel>(registry.Definitions.Select(ToTemplate));
+        if (Templates.Count == 0)
+        {
+            throw new InvalidOperationException("节点目录不能为空。");
+        }
 
         SelectedTemplate = Templates[0];
     }
@@ -50,4 +46,21 @@ public sealed class ToolboxViewModel : ReactiveObject
     /// </summary>
     [Reactive]
     public NodeTemplateViewModel SelectedTemplate { get; set; }
+
+    private static NodeTemplateViewModel ToTemplate(NodeDefinition definition)
+    {
+        return new NodeTemplateViewModel(
+            definition.TypeId,
+            definition.Title,
+            definition.Inputs.Select(port => new PortTemplateViewModel(
+                port.Id,
+                port.Name,
+                PortDirection.Input,
+                port.DataType)).ToArray(),
+            definition.Outputs.Select(port => new PortTemplateViewModel(
+                port.Id,
+                port.Name,
+                PortDirection.Output,
+                port.DataType)).ToArray());
+    }
 }
