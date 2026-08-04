@@ -37,16 +37,16 @@ dotnet test FlowForge.sln --configuration Release
 
 ## 性能证据
 
-Release 实窗测量使用固定窗口 1200 × 760、seed `20260803`、5 秒预热、30 秒自动平移和每秒一个实际 Render 样本。测量代码提交为 `75d670d`：
+Release 实窗测量使用固定窗口 1200 × 760、seed `20260803`、5 秒预热、30 秒自动平移和每秒一个实际 Render 样本。测量代码提交为 `b0005bf`：
 
 | 节点数 | 平均 FPS | 峰值 WorkingSet64 |
 |--------|---------:|------------------:|
-| 100 | 68.784 | 262,475,776 bytes |
-| 250 | 69.507 | 233,123,840 bytes |
-| 500 | 69.882 | 238,223,360 bytes |
-| 1000 | 68.997 | 270,221,312 bytes |
+| 100 | 67.135 | 273,076,224 bytes |
+| 250 | 68.102 | 277,299,200 bytes |
+| 500 | 68.314 | 281,767,936 bytes |
+| 1000 | 68.216 | 290,734,080 bytes |
 
-完整 JSON、环境信息、BenchmarkDotNet 摘要和 Chart.js 图表见[性能报告](docs/perf/fps-vs-node-count.html)，1000 节点窗口截图见 `docs/perf/flowforge-1000-75d670d.png`。运行入口为：
+完整 JSON、环境信息、BenchmarkDotNet 摘要和 Chart.js 图表见[性能报告](docs/perf/fps-vs-node-count.html)，1000 节点窗口截图见 `docs/perf/flowforge-1000-b0005bf.png`。运行入口为：
 
 ```powershell
 dotnet run --project src/FlowForge.App/FlowForge.App.csproj --configuration Release -- --perf --nodes 1000 --output artifacts/perf/fps-1000.json
@@ -61,7 +61,7 @@ dotnet run --project src/FlowForge.App/FlowForge.App.csproj --configuration Rele
 
 ## 当前边界
 
-Stage 5 已覆盖视口导航与剔除、retained scene、压力场景、BenchmarkDotNet 基准、FPS HUD、剩余内置节点、统一节点目录、属性编辑器、覆盖率 gate 和插件加载。Renderer 的 dirty rect 调试接口受 Avalonia 11.2.3 的 renderer 边界约束，最终验收仍以真实 renderer 证据为准。
+Stage 5 已覆盖视口导航与剔除、retained scene、压力场景、BenchmarkDotNet 基准、FPS HUD、剩余内置节点、统一节点目录、属性编辑器、覆盖率 gate 和插件加载。ADR-0004 记录了 Avalonia 11.2.3 的 renderer 边界：公开 `SceneInvalidated` 为 root 级通知，局部失效由实际 dirty tracker 诊断证据验证。
 
 ## 关键决策
 
