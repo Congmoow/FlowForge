@@ -50,6 +50,7 @@ public sealed class NodeCanvas : Panel, IDisposable
     private readonly Dictionary<Guid, RetainedOperationVisual> nodeVisuals = [];
     private readonly Dictionary<Guid, RetainedOperationVisual> edgeVisuals = [];
     private readonly CanvasBackgroundVisual backgroundVisual;
+    private readonly Panel sceneLayer;
     private bool disposed;
     private long renderFrameCount;
 
@@ -77,7 +78,15 @@ public sealed class NodeCanvas : Panel, IDisposable
             IsHitTestVisible = false,
             ZIndex = -1,
         };
+        sceneLayer = new Panel
+        {
+            ClipToBounds = false,
+            IsHitTestVisible = false,
+            RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Absolute),
+        };
         Children.Add(backgroundVisual);
+        Children.Add(sceneLayer);
+        sceneLayer.RenderTransform = new MatrixTransform(Viewport.Transform.WorldToViewMatrix);
         DragDrop.SetAllowDrop(this, true);
         AddHandler(DragDrop.DropEvent, OnDrop);
         this.GetObservable(CanvasProperty).Subscribe(ObserveCanvas);
@@ -157,9 +166,7 @@ public sealed class NodeCanvas : Panel, IDisposable
     {
         foreach (var child in Children)
         {
-            child.Measure(child is RetainedOperationVisual visual
-                ? visual.ViewBounds.Size
-                : availableSize);
+            child.Measure(availableSize);
         }
 
         return new Size(
@@ -172,14 +179,7 @@ public sealed class NodeCanvas : Panel, IDisposable
     {
         foreach (var child in Children)
         {
-            if (child is RetainedOperationVisual visual)
-            {
-                child.Arrange(visual.ViewBounds);
-            }
-            else
-            {
-                child.Arrange(new Rect(finalSize));
-            }
+            child.Arrange(new Rect(finalSize));
         }
 
         return finalSize;
@@ -573,7 +573,7 @@ public sealed class NodeCanvas : Panel, IDisposable
         }
 
         SyncRetainedScene();
-        SyncRetainedVisuals();
+        SyncRetainedVisuals(arrangeChildren: true);
         InvalidateCanvas();
     }
 
@@ -596,7 +596,7 @@ public sealed class NodeCanvas : Panel, IDisposable
         }
 
         SyncRetainedScene();
-        SyncRetainedVisuals();
+        SyncRetainedVisuals(arrangeChildren: true);
         InvalidateCanvas();
     }
 
@@ -608,20 +608,20 @@ public sealed class NodeCanvas : Panel, IDisposable
     private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
         SyncRetainedScene();
-        SyncRetainedVisuals();
+        SyncRetainedVisuals(arrangeChildren: true);
         RenderInvalidationVersion++;
     }
 
     private void OnEdgesChanged(object? sender, NotifyCollectionChangedEventArgs eventArgs)
     {
         SyncRetainedScene();
-        SyncRetainedVisuals();
+        SyncRetainedVisuals(arrangeChildren: true);
         InvalidateCanvas();
     }
 
     private void OnViewportChanged(object? sender, EventArgs eventArgs)
     {
-        SyncRetainedVisuals();
+        SyncRetainedVisuals(arrangeChildren: false);
         InvalidateCanvas();
     }
 
@@ -643,7 +643,7 @@ public sealed class NodeCanvas : Panel, IDisposable
         retainedScene.Rebuild(observedCanvas.Nodes, observedCanvas.Edges);
     }
 
-    private void SyncRetainedVisuals()
+    private void SyncRetainedVisuals(bool arrangeChildren)
     {
         var visibleNodes = retainedScene.NodeOperations
             .Where(operation => CanvasCulling.IntersectsIncludingBoundary(
@@ -660,7 +660,13 @@ public sealed class NodeCanvas : Panel, IDisposable
         SyncVisualMap(edgeVisuals, visibleEdges);
         foreach (var visual in nodeVisuals.Values.Concat(edgeVisuals.Values))
         {
-            visual.Arrange(visual.ViewBounds);
+            visual.ApplyViewportTransform(Viewport.Transform);
+        }
+
+        sceneLayer.RenderTransform = new MatrixTransform(Viewport.Transform.WorldToViewMatrix);
+        if (arrangeChildren)
+        {
+            sceneLayer.InvalidateMeasure();
         }
     }
 
@@ -689,14 +695,14 @@ public sealed class NodeCanvas : Panel, IDisposable
                 ZIndex = operation is EdgeDrawOperation ? 0 : 1,
             };
             visuals.Add(operationId, visual);
-            Children.Add(visual);
+            sceneLayer.Children.Add(visual);
         }
 
         foreach (var removed in visuals.Keys.Except(operations.Keys).ToArray())
         {
             var visual = visuals[removed];
             visuals.Remove(removed);
-            Children.Remove(visual);
+            sceneLayer.Children.Remove(visual);
             visual.Dispose();
         }
     }
@@ -791,13 +797,14 @@ public sealed class NodeCanvas : Panel, IDisposable
 
         foreach (var visual in nodeVisuals.Values.Concat(edgeVisuals.Values).ToArray())
         {
-            Children.Remove(visual);
+            sceneLayer.Children.Remove(visual);
             visual.Dispose();
         }
 
         nodeVisuals.Clear();
         edgeVisuals.Clear();
         Children.Remove(backgroundVisual);
+        Children.Remove(sceneLayer);
         Viewport.Changed -= OnViewportChanged;
         retainedScene.Dispose();
     }
