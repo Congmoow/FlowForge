@@ -145,6 +145,10 @@ public sealed class ConfigDescriptor
         }
 
         var value = ConvertToType(rawValue, field.PropertyType, field.PropertyName);
+        if (field.Required && (value is null || value is string convertedText && string.IsNullOrWhiteSpace(convertedText)))
+        {
+            throw new ConfigValidationException($"属性 {field.PropertyName} 不能为空。");
+        }
         if (value is not null && (field.Min is not null || field.Max is not null))
         {
             var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);

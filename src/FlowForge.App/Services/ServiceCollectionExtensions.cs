@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<WorkflowScheduler>();
         services.AddSingleton<HttpClient>();
         services.AddSingleton<ISecretStore>(_ => SecretStoreFactory.CreateDefault());
+        services.AddSingleton<IFilePickerService, AvaloniaFilePickerService>();
         services.AddSingleton<NodeRegistry>(provider => NodeRegistry.CreateDefault(
             provider.GetRequiredService<ISecretStore>(),
             provider.GetRequiredService<HttpClient>()));
@@ -31,7 +32,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MainWindowViewModel>(provider => new MainWindowViewModel(
             provider.GetRequiredService<IWorkflowRunner>(),
             provider.GetRequiredService<IWorkflowFileService>(),
-            provider.GetRequiredService<NodeRegistry>()));
+            provider.GetRequiredService<NodeRegistry>(),
+            provider.GetRequiredService<ISecretStore>(),
+            provider.GetRequiredService<IFilePickerService>()));
         services.AddTransient<MainWindow>();
 
         return services;
