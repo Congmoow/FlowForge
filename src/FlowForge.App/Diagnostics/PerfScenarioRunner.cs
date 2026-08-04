@@ -61,17 +61,28 @@ public static class PerfScenarioRunner
         canvas.ResetRenderFrameCount();
         var startedAt = DateTimeOffset.UtcNow;
         var stopwatch = Stopwatch.StartNew();
+        var panState = new PanState();
 
-        await RunPanLoopAsync(canvas, options, options.Warmup, stopwatch, null, ct).ConfigureAwait(true);
+        await RunPanLoopAsync(
+            canvas,
+            scenario.WorldBounds,
+            options,
+            options.Warmup,
+            stopwatch,
+            panState,
+            null,
+            ct).ConfigureAwait(true);
 
         var samples = new List<PerfSample>();
         var lastSampleTimestamp = TimeSpan.Zero;
         var lastFrameCount = canvas.RenderFrameCount;
         await RunPanLoopAsync(
             canvas,
+            scenario.WorldBounds,
             options,
             options.Duration,
             stopwatch,
+            panState,
             (elapsed, frameCount) =>
             {
                 var interval = elapsed - lastSampleTimestamp;
@@ -109,9 +120,11 @@ public static class PerfScenarioRunner
 
     private static async Task RunPanLoopAsync(
         NodeCanvas canvas,
+        Avalonia.Rect sceneBounds,
         PerfRunOptions options,
         TimeSpan duration,
         Stopwatch stopwatch,
+        PanState panState,
         Action<TimeSpan, long>? sample,
         CancellationToken ct)
     {
@@ -122,7 +135,14 @@ public static class PerfScenarioRunner
             ct.ThrowIfCancellationRequested();
             var elapsed = stopwatch.Elapsed;
             var stepSeconds = options.PanInterval.TotalSeconds;
-            canvas.Viewport.PanBy(new Avalonia.Vector(options.PanSpeed * stepSeconds, 0));
+            panState.Direction = PerfPanController.ResolveDirection(
+                canvas.Viewport.WorldBounds,
+                sceneBounds,
+                panState.Direction);
+            canvas.Viewport.PanBy(PerfPanController.GetViewDelta(
+                panState.Direction,
+                options.PanSpeed,
+                options.PanInterval));
             await Task.Delay(options.PanInterval, ct).ConfigureAwait(true);
 
             if (sample is null)
@@ -137,6 +157,11 @@ public static class PerfScenarioRunner
                 nextSample += options.SampleInterval;
             }
         }
+    }
+
+    private sealed class PanState
+    {
+        public int Direction { get; set; } = 1;
     }
 
     private static async Task WriteJsonAsync(
