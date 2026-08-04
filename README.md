@@ -61,7 +61,7 @@ dotnet run --project src/FlowForge.App/FlowForge.App.csproj --configuration Rele
 
 ## 当前边界
 
-Stage 5 已覆盖视口导航与剔除、retained scene、压力场景、BenchmarkDotNet 基准、FPS HUD、剩余内置节点、统一节点目录、属性编辑器、覆盖率 gate 和插件加载。ADR-0004 记录了 Avalonia 11.2.3 的 renderer 边界：公开 `SceneInvalidated` 为 root 级通知，局部失效由实际 dirty tracker 诊断证据验证。
+Stage 5 已覆盖视口导航与剔除、retained scene、压力场景、BenchmarkDotNet 基准、FPS HUD、剩余内置节点、统一节点目录、属性编辑器、覆盖率 gate 和插件加载。ADR-0004 记录了 Avalonia 11.2.3 的 renderer 边界：公开 `SceneInvalidated` 为 root 级通知；当前仓库可复现的是 retained operation 无头测试和真实性能采样，尚未把 root 通知或 `LastDirtyRect` 冒充为实际 dirty tracker 证据。
 
 ## 关键决策
 
