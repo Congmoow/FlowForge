@@ -71,13 +71,14 @@ public sealed class StressScenarioTests
     public void PerfSamplingOptions_TryParsePerfArguments_ReturnsValidatedOptions()
     {
         var parsed = PerfSamplingOptions.TryParse(
-            ["--perf", "--nodes", "250", "--seed=7", "--output", "artifacts/perf.json"],
+            ["--perf", "--nodes", "250", "--seed=7", "--output", "artifacts/perf.json", "--screenshot", "artifacts/perf.png"],
             out var options);
 
         parsed.Should().BeTrue();
         options.NodeCount.Should().Be(250);
         options.Seed.Should().Be(7);
         options.OutputPath.Should().Be("artifacts/perf.json");
+        options.ScreenshotPath.Should().Be("artifacts/perf.png");
     }
 
     [Fact]

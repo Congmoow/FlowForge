@@ -29,6 +29,9 @@ public sealed record PerfRunOptions
     /// <summary>性能 JSON 输出路径；为空时不写文件。</summary>
     public string? OutputPath { get; init; }
 
+    /// <summary>真实窗口渲染截图输出路径；为空时不保存截图。</summary>
+    public string? ScreenshotPath { get; init; }
+
     /// <summary>是否显示性能 HUD。</summary>
     public bool ShowHud { get; init; } = true;
 
@@ -52,6 +55,7 @@ public sealed record PerfRunOptions
             PanInterval = options.PanInterval,
             PanSpeed = options.PanSpeed,
             OutputPath = options.OutputPath,
+            ScreenshotPath = options.ScreenshotPath,
         };
     }
 
@@ -71,6 +75,7 @@ public sealed record PerfRunOptions
             PanInterval = PanInterval,
             PanSpeed = PanSpeed,
             OutputPath = OutputPath,
+            ScreenshotPath = ScreenshotPath,
         };
     }
 
