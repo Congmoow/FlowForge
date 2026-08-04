@@ -133,4 +133,25 @@ public sealed class RegexExtractNodeTests
         await action.Should().ThrowAsync<OperationCanceledException>();
         context.WriteCount.Should().Be(0);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_CancellationDuringManyMatches_StopsBeforeWritingAsync()
+    {
+        var node = new RegexExtractNode(new RegexExtractNodeConfig("a"));
+        var context = new TestExecutionContext();
+        context.SetInput(node.TextInput, string.Concat(Enumerable.Repeat("a ", 2_000_000)));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(20));
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        var actionTask = node.ExecuteAsync(context, cancellation.Token).AsTask();
+        var completedTask = await Task.WhenAny(actionTask, Task.Delay(TimeSpan.FromMilliseconds(200)));
+        var action = async () => await actionTask;
+
+        completedTask.Should().BeSameAs(actionTask);
+        await action.Should().ThrowAsync<OperationCanceledException>();
+        stopwatch.Stop();
+        stopwatch.Elapsed.Should().BeLessThan(TimeSpan.FromMilliseconds(500));
+        context.WriteCount.Should().Be(0);
+    }
 }
