@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FlowForge.App.Services;
 using FlowForge.App.ViewModels;
 using FlowForge.Core.Abstractions;
@@ -35,6 +36,42 @@ public sealed class PluginServiceTests
         var act = () => service.LoadAsync();
 
         await act.Should().ThrowAsync<ObjectDisposedException>();
+    }
+
+    [Fact]
+    public async Task LoadAsync_ConcurrentCalls_DoNotDisposeWorkBeforeItStarts()
+    {
+        using var directory = new TemporaryDirectory();
+        File.Copy(
+            GetRepositoryRootPath(
+                "src",
+                "FlowForge.Plugins.Sample",
+                "bin",
+                "Release",
+                "net8.0",
+            "FlowForge.Plugins.Sample.dll"),
+            Path.Combine(directory.Path, "FlowForge.Plugins.Sample.dll"));
+        var registry = new NodeRegistry();
+        await RunConcurrentLoadsAsync(directory.Path, registry);
+
+        registry.TryGetDefinition("core.transform.uppercase", out _).Should().BeFalse();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var deleteDirectory = () => Directory.Delete(directory.Path, recursive: true);
+        deleteDirectory.Should().NotThrow();
+    }
+
+    private static async Task RunConcurrentLoadsAsync(string pluginDirectory, NodeRegistry registry)
+    {
+        using var service = new PluginService(registry, pluginDirectory);
+        var loads = Enumerable.Range(0, 32)
+            .Select(_ => service.LoadAsync())
+            .ToArray();
+
+        var act = async () => await Task.WhenAll(loads);
+        await act.Should().NotThrowAsync();
     }
 
     [Fact]
@@ -90,10 +127,47 @@ public sealed class PluginServiceTests
 
         public void Dispose()
         {
-            if (Directory.Exists(Path))
+            for (var attempt = 0; attempt < 5 && Directory.Exists(Path); attempt++)
             {
-                Directory.Delete(Path, recursive: true);
+                try
+                {
+                    Directory.Delete(Path, recursive: true);
+                }
+                catch (IOException) when (attempt < 4)
+                {
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
+                    Thread.Sleep(50);
+                }
+                catch (UnauthorizedAccessException) when (attempt < 4)
+                {
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
+                    Thread.Sleep(50);
+                }
+                catch (Exception error)
+                {
+                    Trace.WriteLine($"测试临时插件目录清理延迟：{error.Message}");
+                    break;
+                }
             }
         }
+    }
+
+    private static string GetRepositoryRootPath(params string[] segments)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "FlowForge.sln")))
+        {
+            directory = directory.Parent;
+        }
+
+        directory.Should().NotBeNull("测试必须从 FlowForge 仓库运行");
+        var pathSegments = new string[segments.Length + 1];
+        pathSegments[0] = directory!.FullName;
+        Array.Copy(segments, 0, pathSegments, 1, segments.Length);
+        return Path.Combine(pathSegments);
     }
 }

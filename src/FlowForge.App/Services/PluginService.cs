@@ -12,6 +12,7 @@ public sealed class PluginService : IPluginService
     private readonly string pluginDirectory;
     private readonly object sync = new();
     private PluginLoader? loader;
+    private Task<PluginLoadReport>? loadTask;
     private bool isDisposed;
 
     /// <summary>
@@ -34,11 +35,17 @@ public sealed class PluginService : IPluginService
         lock (sync)
         {
             ObjectDisposedException.ThrowIf(isDisposed, this);
+
+            if (loadTask is { IsCompleted: false })
+            {
+                return loadTask;
+            }
+
             loader?.Dispose();
             loader = new PluginLoader(registry, pluginDirectory);
             var activeLoader = loader;
-
-            return Task.Run(activeLoader.LoadAll, cancellationToken);
+            loadTask = Task.Run(activeLoader.LoadAll, cancellationToken);
+            return loadTask;
         }
     }
 
@@ -53,8 +60,26 @@ public sealed class PluginService : IPluginService
             }
 
             isDisposed = true;
-            loader?.Dispose();
+            var activeLoader = loader;
+            var activeLoadTask = loadTask;
             loader = null;
+            loadTask = null;
+
+            if (activeLoader is not null)
+            {
+                if (activeLoadTask is null || activeLoadTask.IsCompleted)
+                {
+                    activeLoader.Dispose();
+                }
+                else
+                {
+                    _ = activeLoadTask.ContinueWith(
+                        _ => activeLoader.Dispose(),
+                        CancellationToken.None,
+                        TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default);
+                }
+            }
         }
 
         GC.SuppressFinalize(this);
