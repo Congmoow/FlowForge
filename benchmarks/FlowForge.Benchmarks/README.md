@@ -19,5 +19,15 @@ dotnet run --project benchmarks/FlowForge.Benchmarks/FlowForge.Benchmarks.csproj
 
 ## 运行调度基准
 
-完成调度基准后，使用相同命令将过滤器替换为
-`"*WorkflowSchedulerBenchmarks*"`。
+在仓库根目录执行：
+
+```powershell
+dotnet run --project benchmarks/FlowForge.Benchmarks/FlowForge.Benchmarks.csproj `
+  --configuration Release -- --filter "*WorkflowSchedulerBenchmarks*" `
+  --artifacts artifacts/benchmarks
+```
+
+`WorkflowSchedulerBenchmarks` 使用 10、100 和 1000 个节点三个参数。每次迭代在
+`IterationSetup` 中创建新的线性工作流，基准方法调用真实的
+`WorkflowScheduler.ExecuteAsync`，通过 `ChannelEdgeRouter` 在相邻节点间传递一个
+内存值。
