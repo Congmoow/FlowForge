@@ -10,17 +10,41 @@ namespace FlowForge.App.Diagnostics;
 public static class PerfScenarioRunner
 {
     /// <summary>
-    /// 运行一次性能场景。FPS 来自画布实际 Render 调用次数，不使用模拟计数。
+    /// 使用 A5 采样参数运行一次性能场景，保留原有调用契约。
     /// </summary>
     /// <param name="canvas">已挂载到 Avalonia 窗口的画布控件。</param>
     /// <param name="scenario">要绑定的确定性压力场景。</param>
     /// <param name="options">采样参数。</param>
     /// <param name="ct">取消令牌。</param>
     /// <returns>包含每秒样本和聚合指标的结果。</returns>
-    public static async Task<PerfRunResult> RunAsync(
+    public static Task<PerfRunResult> RunAsync(
         NodeCanvas canvas,
         StressScenario scenario,
         PerfSamplingOptions options,
+        CancellationToken ct = default)
+    {
+        return RunAsync(
+            canvas,
+            scenario,
+            PerfRunOptions.From(options),
+            sampleProgress: null,
+            ct);
+    }
+
+    /// <summary>
+    /// 运行一次性能场景。FPS 来自画布实际 Render 调用次数，不使用模拟计数。
+    /// </summary>
+    /// <param name="canvas">已挂载到 Avalonia 窗口的画布控件。</param>
+    /// <param name="scenario">要绑定的确定性压力场景。</param>
+    /// <param name="options">HUD 和采样器共享的运行参数。</param>
+    /// <param name="sampleProgress">每个正式采样窗口完成时接收一次样本。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>包含每秒样本和聚合指标的结果。</returns>
+    public static async Task<PerfRunResult> RunAsync(
+        NodeCanvas canvas,
+        StressScenario scenario,
+        PerfRunOptions options,
+        IProgress<PerfSample>? sampleProgress = null,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(canvas);
@@ -58,14 +82,16 @@ public static class PerfScenarioRunner
 
                 var renderedFrames = frameCount - lastFrameCount;
                 var seconds = Math.Max(interval.TotalSeconds, double.Epsilon);
-                samples.Add(new PerfSample(
+                var perfSample = new PerfSample(
                     options.NodeCount,
                     options.Seed,
                     DateTimeOffset.UtcNow,
                     interval,
                     renderedFrames,
                     renderedFrames / seconds,
-                    Process.GetCurrentProcess().WorkingSet64));
+                    Process.GetCurrentProcess().WorkingSet64);
+                samples.Add(perfSample);
+                sampleProgress?.Report(perfSample);
                 lastSampleTimestamp = elapsed;
                 lastFrameCount = frameCount;
             },
@@ -88,7 +114,7 @@ public static class PerfScenarioRunner
 
     private static async Task RunPanLoopAsync(
         NodeCanvas canvas,
-        PerfSamplingOptions options,
+        PerfRunOptions options,
         TimeSpan duration,
         Stopwatch stopwatch,
         Action<TimeSpan, long>? sample,
