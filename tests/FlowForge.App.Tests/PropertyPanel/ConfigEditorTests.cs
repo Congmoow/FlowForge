@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Avalonia;
+using Avalonia.Controls;
 using FlowForge.App.Controls;
 using FlowForge.App.Services;
 using FlowForge.App.ViewModels;
@@ -49,6 +50,31 @@ public sealed class ConfigEditorTests
         await panel.PickFileAsync(nameof(TextDataSourceConfig.FilePath));
 
         node.Config.Should().Be(new TextDataSourceConfig("new.txt"));
+    }
+
+    [Fact]
+    public void TextBoxEditor_TracksConfigUndoAndRedoValues()
+    {
+        var registry = NodeRegistry.CreateDefault();
+        var node = registry.GetDefinition("core.transform.text-concat")
+            .Create(Guid.NewGuid(), new TextConcatNodeConfig("旧"));
+        var canvas = new CanvasViewModel(registry);
+        var viewModel = new NodeViewModel(node, registry.GetDefinition(node.TypeId), new Point(0, 0));
+        canvas.Nodes.Add(viewModel);
+        var panel = new PropertyPanelViewModel(canvas);
+        panel.SetSelectedNode(viewModel);
+        var field = panel.Fields.Single(item => item.PropertyName == nameof(TextConcatNodeConfig.Separator));
+        var editor = new ConfigFieldEditor { Field = field };
+        var textBox = editor.Content.Should().BeOfType<TextBox>().Subject;
+
+        textBox.Text.Should().Be("旧");
+        panel.EditProperty(nameof(TextConcatNodeConfig.Separator), "新").Should().BeTrue();
+        textBox.Text.Should().Be("新");
+
+        canvas.CommandHistory.Undo();
+        textBox.Text.Should().Be("旧");
+        canvas.CommandHistory.Redo();
+        textBox.Text.Should().Be("新");
     }
 
     [Fact]

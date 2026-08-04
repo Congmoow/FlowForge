@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -33,17 +34,32 @@ public sealed class ConfigFieldEditor : UserControl
         set => SetValue(FieldProperty, value);
     }
 
+    private ConfigFieldViewModel? observedField;
+    private Control? editor;
+    private bool isSynchronizing;
+
     /// <inheritdoc />
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
         if (change.Property == FieldProperty)
         {
-            Content = BuildEditor(change.NewValue as ConfigFieldViewModel);
+            if (observedField is not null)
+            {
+                observedField.PropertyChanged -= OnFieldPropertyChanged;
+            }
+
+            observedField = change.NewValue as ConfigFieldViewModel;
+            editor = BuildEditor(observedField);
+            Content = editor;
+            if (observedField is not null)
+            {
+                observedField.PropertyChanged += OnFieldPropertyChanged;
+            }
         }
     }
 
-    private static Control? BuildEditor(ConfigFieldViewModel? field)
+    private Control? BuildEditor(ConfigFieldViewModel? field)
     {
         if (field is null)
         {
@@ -62,7 +78,7 @@ public sealed class ConfigFieldEditor : UserControl
         };
     }
 
-    private static TextBox BuildTextBox(ConfigFieldViewModel field, bool multiline)
+    private TextBox BuildTextBox(ConfigFieldViewModel field, bool multiline)
     {
         var textBox = new TextBox
         {
@@ -71,11 +87,17 @@ public sealed class ConfigFieldEditor : UserControl
             TextWrapping = multiline ? TextWrapping.Wrap : TextWrapping.NoWrap,
             MinHeight = multiline ? 84 : 0,
         };
-        textBox.LostFocus += (_, _) => _ = field.CommitAsync(textBox.Text);
+        textBox.LostFocus += (_, _) =>
+        {
+            if (!isSynchronizing)
+            {
+                _ = field.CommitAsync(textBox.Text);
+            }
+        };
         return textBox;
     }
 
-    private static NumericUpDown BuildNumericBox(ConfigFieldViewModel field)
+    private NumericUpDown BuildNumericBox(ConfigFieldViewModel field)
     {
         var numeric = new NumericUpDown { Value = ToDecimal(field.Value) };
         if (field.Descriptor.Min is { } min)
@@ -87,18 +109,30 @@ public sealed class ConfigFieldEditor : UserControl
         {
             numeric.Maximum = (decimal)max;
         }
-        numeric.ValueChanged += (_, args) => _ = field.CommitAsync(args.NewValue);
+        numeric.ValueChanged += (_, args) =>
+        {
+            if (!isSynchronizing)
+            {
+                _ = field.CommitAsync(args.NewValue);
+            }
+        };
         return numeric;
     }
 
-    private static ComboBox BuildComboBox(ConfigFieldViewModel field)
+    private ComboBox BuildComboBox(ConfigFieldViewModel field)
     {
         var comboBox = new ComboBox
         {
             ItemsSource = field.Options,
             SelectedItem = Convert.ToString(field.Value, CultureInfo.InvariantCulture),
         };
-        comboBox.SelectionChanged += (_, _) => _ = field.CommitAsync(comboBox.SelectedItem);
+        comboBox.SelectionChanged += (_, _) =>
+        {
+            if (!isSynchronizing)
+            {
+                _ = field.CommitAsync(comboBox.SelectedItem);
+            }
+        };
         return comboBox;
     }
 
@@ -139,5 +173,52 @@ public sealed class ConfigFieldEditor : UserControl
         return value is null
             ? null
             : Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+    }
+
+    private void OnFieldPropertyChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (sender is ConfigFieldViewModel field
+            && string.Equals(args.PropertyName, nameof(ConfigFieldViewModel.Value), StringComparison.Ordinal))
+        {
+            SynchronizeEditorValue(field);
+        }
+    }
+
+    private void SynchronizeEditorValue(ConfigFieldViewModel field)
+    {
+        if (isSynchronizing || field.IsPassword)
+        {
+            return;
+        }
+
+        isSynchronizing = true;
+        try
+        {
+            switch (editor)
+            {
+                case TextBox textBox:
+                    textBox.Text = ToText(field.Value);
+                    break;
+                case NumericUpDown numeric:
+                    numeric.Value = ToDecimal(field.Value);
+                    break;
+                case ComboBox comboBox:
+                    comboBox.SelectedItem = Convert.ToString(field.Value, CultureInfo.InvariantCulture);
+                    break;
+                case StackPanel { Children.Count: > 0 } filePicker
+                    when filePicker.Children[0] is TextBox filePath:
+                    filePath.Text = ToText(field.Value);
+                    break;
+            }
+        }
+        finally
+        {
+            isSynchronizing = false;
+        }
+    }
+
+    private static string ToText(object? value)
+    {
+        return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
     }
 }
