@@ -38,6 +38,10 @@ public sealed record PerfRunResult(
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
+    /// <summary>获取性能数据的来源和运行环境。</summary>
+    public PerfRunMetadata Metadata { get; init; } =
+        PerfRunMetadata.Capture(commit: null, windowSize: default);
+
     /// <summary>所有采样窗口 FPS 的算术平均值。</summary>
     public double AverageFramesPerSecond => Samples.Count == 0
         ? 0
