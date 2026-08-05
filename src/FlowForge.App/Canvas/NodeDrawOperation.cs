@@ -13,10 +13,13 @@ public sealed class NodeDrawOperation : ICustomDrawOperation
     private static readonly IImmutableBrush Fill = new ImmutableSolidColorBrush(Color.Parse("#FFFFFF"));
     private static readonly IImmutableBrush HeaderFill = new ImmutableSolidColorBrush(Color.Parse("#EFF6FF"));
     private static readonly IImmutableBrush PortFill = new ImmutableSolidColorBrush(Color.Parse("#2563EB"));
+    private static readonly IImmutableBrush TextFill = new ImmutableSolidColorBrush(Color.Parse("#1E293B"));
     private static readonly ImmutablePen PortPen = CreatePen(Color.Parse("#FFFFFF"), 1.5);
     private static BoxShadows EmptyBoxShadows => default;
     private readonly ImmutablePen borderPen;
     private readonly ImmutablePen selectedBorderPen;
+    private FormattedText? titleText;
+    private FormattedText? bodyText;
     private bool disposed;
 
     /// <summary>初始化节点绘制操作。</summary>
@@ -24,20 +27,6 @@ public sealed class NodeDrawOperation : ICustomDrawOperation
     public NodeDrawOperation(NodeDrawSnapshot snapshot)
     {
         Snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
-        TitleText = new FormattedText(
-            snapshot.Title,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            Typeface.Default,
-            14,
-            new ImmutableSolidColorBrush(Color.Parse("#1E293B")));
-        BodyText = new FormattedText(
-            snapshot.Body,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            Typeface.Default,
-            12,
-            new ImmutableSolidColorBrush(Color.Parse("#1E293B")));
         borderPen = CreatePen(snapshot.BorderColor, 1.5);
         selectedBorderPen = CreatePen(snapshot.BorderColor, 2.5);
     }
@@ -46,10 +35,10 @@ public sealed class NodeDrawOperation : ICustomDrawOperation
     public NodeDrawSnapshot Snapshot { get; }
 
     /// <summary>缓存的节点标题文本。</summary>
-    public FormattedText TitleText { get; }
+    public FormattedText TitleText => titleText ??= CreateFormattedText(Snapshot.Title, 14);
 
     /// <summary>缓存的节点正文文本。</summary>
-    public FormattedText BodyText { get; }
+    public FormattedText BodyText => bodyText ??= CreateFormattedText(Snapshot.Body, 12);
 
     /// <summary>操作是否已经释放。</summary>
     public bool IsDisposed => disposed;
@@ -129,5 +118,16 @@ public sealed class NodeDrawOperation : ICustomDrawOperation
             PenLineCap.Round,
             PenLineJoin.Round,
             10);
+    }
+
+    private static FormattedText CreateFormattedText(string text, double fontSize)
+    {
+        return new FormattedText(
+            text,
+            System.Globalization.CultureInfo.CurrentCulture,
+            FlowDirection.LeftToRight,
+            Typeface.Default,
+            fontSize,
+            TextFill);
     }
 }

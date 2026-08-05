@@ -1,3 +1,4 @@
+using System.Reflection;
 using Avalonia;
 using Avalonia.Media;
 using FlowForge.App.Canvas;
@@ -13,6 +14,27 @@ namespace FlowForge.App.Tests.Canvas;
 
 public sealed class DirtyRegionTests
 {
+    [Fact]
+    public void NodeDrawOperation_TextLayouts_AreCreatedOnlyWhenRequested()
+    {
+        using var operation = new NodeDrawOperation(CreateNodeSnapshot(new Rect(10, 20, 220, 96)));
+        var textFields = typeof(NodeDrawOperation)
+            .GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
+            .Where(field => field.FieldType == typeof(FormattedText))
+            .ToArray();
+
+        textFields.Should().NotBeEmpty();
+        textFields.Select(field => field.GetValue(operation))
+            .Should()
+            .OnlyContain(value => value == null);
+
+        operation.TitleText.Should().NotBeNull();
+        operation.BodyText.Should().NotBeNull();
+        textFields.Select(field => field.GetValue(operation))
+            .Should()
+            .OnlyContain(value => value != null);
+    }
+
     [Fact]
     public void NodeDrawOperation_EqualSnapshots_HaveStableEqualityAndCachedResources()
     {
