@@ -120,7 +120,8 @@ public partial class App : Application
                 mainWindow.CanvasControl,
                 scenario,
                 runOptions,
-                new Progress<PerfSample>(viewModel.PerfHud.ApplySample));
+                new Progress<PerfSample>(viewModel.PerfHud.ApplySample),
+                windowSize: window.Bounds.Size);
             viewModel.PerfHud.Complete(result);
             if (!string.IsNullOrWhiteSpace(options.ScreenshotPath))
             {

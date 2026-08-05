@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Avalonia;
 using FlowForge.App.Canvas;
 using FlowForge.App.Diagnostics;
 using FluentAssertions;
@@ -74,6 +75,16 @@ public sealed class StressScenarioTests
             .Should().NotBeNullOrWhiteSpace();
         json.RootElement.GetProperty("metadata").GetProperty("windowWidth").GetDouble()
             .Should().BeGreaterThanOrEqualTo(0);
+    }
+
+    [Fact]
+    public void PerfRunMetadata_Capture_UsesSuppliedHostWindowSize()
+    {
+        var metadata = PerfRunMetadata.Capture("abc1234", new Size(1200, 760));
+
+        metadata.Commit.Should().Be("abc1234");
+        metadata.WindowWidth.Should().Be(1200);
+        metadata.WindowHeight.Should().Be(760);
     }
 
     [Fact]

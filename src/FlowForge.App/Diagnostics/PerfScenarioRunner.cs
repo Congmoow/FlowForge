@@ -28,7 +28,7 @@ public static class PerfScenarioRunner
             scenario,
             PerfRunOptions.From(options),
             sampleProgress: null,
-            ct);
+            ct: ct);
     }
 
     /// <summary>
@@ -39,12 +39,14 @@ public static class PerfScenarioRunner
     /// <param name="options">HUD 和采样器共享的运行参数。</param>
     /// <param name="sampleProgress">每个正式采样窗口完成时接收一次样本。</param>
     /// <param name="ct">取消令牌。</param>
+    /// <param name="windowSize">实际宿主窗口尺寸；未提供时兼容性回退到画布尺寸。</param>
     /// <returns>包含每秒样本和聚合指标的结果。</returns>
     public static async Task<PerfRunResult> RunAsync(
         NodeCanvas canvas,
         StressScenario scenario,
         PerfRunOptions options,
         IProgress<PerfSample>? sampleProgress = null,
+        Avalonia.Size? windowSize = null,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(canvas);
@@ -111,7 +113,9 @@ public static class PerfScenarioRunner
             options.Duration,
             samples)
         {
-            Metadata = PerfRunMetadata.Capture(options.Commit, canvas.Bounds.Size),
+            Metadata = PerfRunMetadata.Capture(
+                options.Commit,
+                windowSize ?? canvas.Bounds.Size),
         };
         if (!string.IsNullOrWhiteSpace(options.OutputPath))
         {
