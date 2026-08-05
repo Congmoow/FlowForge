@@ -97,9 +97,9 @@ dotnet run --project src/FlowForge.App/FlowForge.App.csproj --configuration Rele
 
 ## What I learned
 
-第一，Channel 流式调度的难点不在于启动并发任务，而在于定义每条边的完成、失败和取消语义。把边做成独立 Channel，并让调度器统一完成输出和传播异常，才能让上游持续产出时下游立即消费，同时避免节点之间共享不可见状态。
+第一，Channel 流式调度的难点不在于启动并发任务，而在于定义每条边的完成、失败和取消语义。把边做成独立 Channel，并让调度器统一完成输出和传播异常，才能让上游持续产出时下游立即消费，同时避免节点之间共享不可见状态。这也让我把完成、失败和取消传播固化成可测试的协议，而不是散落在每个节点里。
 
-第二，Avalonia 自绘画布的性能不能只靠一次性绘制优化。统一 world/view 坐标、用几何 bounds 做节点和连线剔除，再把可见对象拆成可复用的 retained operation，才能让视口移动、节点移动和资源释放拥有可测试的边界。性能结论最终仍必须来自真实 Release 窗口，而不是无头测试里的伪 FPS。
+第二，Avalonia 自绘画布的性能不能只靠一次性绘制优化。统一 world/view 坐标、用几何 bounds 做节点和连线剔除，再把可见对象拆成可复用的 retained operation，才能让视口移动、节点移动和资源释放拥有可测试的边界。Stage 6 的性能复核进一步确认，性能结论最终仍必须来自真实 Release 窗口，而不是无头测试里的伪 FPS。
 
 第三，插件机制需要同时解决扩展性和类型身份问题。显式 `INodePlugin`、统一 `NodeRegistry`、Default context 中共享 Core 契约，以及失败插件的结构化诊断，让插件可以被加载、验证、卸载，而不会把任意反射类型或坏依赖带进主应用。
 
