@@ -22,3 +22,7 @@
 - 新增 Foreach、Regex Extract、File Writer 节点；NodeRegistry、PortFactory、ConfigField 属性面板和六类编辑器；Password 配置继续只保存稳定 secret reference。
 - 新增显式 `INodePlugin` 注册、可卸载依赖隔离加载器、示例插件和 App 的 `plugins` 目录扫描；失败插件形成诊断但不阻断其他插件。
 - 当前性能报告中的 FPS/WorkingSet64 来自真实窗口；ADR-0004 记录 Avalonia 11.2.3 的公开 `SceneInvalidated` root 级通知边界。当前可复现证据是 retained operation 的无头测试和真实性能采样，仓库尚未提交 renderer smoke 的 dirty tracker 原始输出。
+- 完成 Stage 6 收尾文档：重写 README，补齐架构、节点协议、工作流 schema 和 ADR-0006。
+- 新增真实 Avalonia 窗口的 30 秒 GIF/MP4 演示、日志提取分类样例及端到端集成测试。
+- 新增 Windows/macOS/Linux 构建矩阵、tag Release 流程、Issue 模板和 PR 模板。
+- 归档最终 commit `7764672` 的 100/250/500/1000 节点 Release 性能 JSON 与 1000 节点截图；四档平均 FPS 和 WorkingSet64 均通过门禁。
