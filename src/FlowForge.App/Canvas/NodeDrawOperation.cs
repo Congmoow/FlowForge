@@ -111,13 +111,7 @@ public sealed class NodeDrawOperation : ICustomDrawOperation
 
     private static ImmutablePen CreatePen(Color color, double thickness)
     {
-        return new ImmutablePen(
-            new ImmutableSolidColorBrush(color),
-            thickness,
-            new ImmutableDashStyle([], 0),
-            PenLineCap.Round,
-            PenLineJoin.Round,
-            10);
+        return CanvasPenCache.Get(color, thickness);
     }
 
     private static FormattedText CreateFormattedText(string text, double fontSize)

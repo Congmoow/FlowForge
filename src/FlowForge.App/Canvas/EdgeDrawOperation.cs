@@ -29,13 +29,7 @@ public sealed class EdgeDrawOperation : ICustomDrawOperation
             snapshot.EndPoint,
             snapshot.StrokeWidth);
         renderPoints = CreateRenderPoints(snapshot.StartPoint, snapshot.EndPoint, controlPoints);
-        pen = new ImmutablePen(
-            new ImmutableSolidColorBrush(Color.Parse("#64748B")),
-            snapshot.StrokeWidth,
-            new ImmutableDashStyle([], 0),
-            PenLineCap.Round,
-            PenLineJoin.Round,
-            10);
+        pen = CanvasPenCache.Get(Color.Parse("#64748B"), snapshot.StrokeWidth);
     }
 
     /// <summary>不可变连线绘制快照。</summary>

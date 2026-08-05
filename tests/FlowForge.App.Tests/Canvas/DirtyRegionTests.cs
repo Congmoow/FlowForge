@@ -66,6 +66,33 @@ public sealed class DirtyRegionTests
     }
 
     [Fact]
+    public void DrawOperations_WithSamePenConfiguration_ReusePenResources()
+    {
+        using var firstNode = new NodeDrawOperation(CreateNodeSnapshot(new Rect(10, 20, 220, 96)));
+        using var secondNode = new NodeDrawOperation(CreateNodeSnapshot(new Rect(300, 20, 220, 96)));
+        using var firstEdge = new EdgeDrawOperation(new EdgeDrawSnapshot(
+            Guid.NewGuid(),
+            new Point(0, 10),
+            new Point(100, 10),
+            2));
+        using var secondEdge = new EdgeDrawOperation(new EdgeDrawSnapshot(
+            Guid.NewGuid(),
+            new Point(0, 30),
+            new Point(100, 30),
+            2));
+
+        var nodePenField = typeof(NodeDrawOperation)
+            .GetField("borderPen", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var edgePenField = typeof(EdgeDrawOperation)
+            .GetField("pen", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        ReferenceEquals(nodePenField.GetValue(firstNode), nodePenField.GetValue(secondNode))
+            .Should().BeTrue();
+        ReferenceEquals(edgePenField.GetValue(firstEdge), edgePenField.GetValue(secondEdge))
+            .Should().BeTrue();
+    }
+
+    [Fact]
     public void DrawOperations_Dispose_IsIdempotentAndMarksOperationDisposed()
     {
         using var node = new NodeDrawOperation(CreateNodeSnapshot(new Rect(0, 0, 220, 96)));
