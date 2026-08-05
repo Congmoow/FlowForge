@@ -16,7 +16,7 @@ FlowForge 是一款面向本地执行的节点式可视化 AI 工作流编辑器
 
 ## 30 秒了解项目
 
-GIF 演示展示真实 Avalonia 窗口中的压力画布和视口移动；静态截图保留了性能 HUD 和三栏编辑器结构。完整架构见[架构总览](docs/architecture.md)，节点扩展规则见[节点协议](docs/node-protocol.md)。
+GIF 演示展示真实 Avalonia 窗口中的压力画布和视口移动；静态截图保留了性能 HUD 和三栏编辑器结构。也可下载[30 秒 MP4 视频演示](docs/assets/flowforge-demo.mp4)。完整架构见[架构总览](docs/architecture.md)，节点扩展规则见[节点协议](docs/node-protocol.md)。
 
 ## 已实现能力
 
