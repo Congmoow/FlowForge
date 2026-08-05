@@ -11,8 +11,21 @@ on:
 
 jobs:
   build:
-    name: Build and test
-    runs-on: windows-latest
+    name: Build and test (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows
+            os: windows-latest
+            coverage: true
+          - label: macOS
+            os: macos-latest
+            coverage: false
+          - label: Linux
+            os: ubuntu-latest
+            coverage: false
 
     steps:
       - name: 检出代码
@@ -32,21 +45,27 @@ jobs:
       - name: 代码分析
         run: dotnet build FlowForge.sln --configuration Release --no-restore -p:EnforceCodeStyleInBuild=true -warnaserror
 
-      - name: 测试并收集 Cobertura 覆盖率
+      - name: Windows 测试并收集 Cobertura 覆盖率
+        if: matrix.coverage
         run: >-
           dotnet test FlowForge.sln --configuration Release --no-build
           --settings coverage.runsettings
           --collect "XPlat Code Coverage"
           --results-directory artifacts/coverage
 
-      - name: 校验 ViewModels 覆盖率门禁
+      - name: Windows 覆盖率门禁
+        if: matrix.coverage
         shell: pwsh
         run: .\eng\verify-viewmodel-coverage.ps1 -CoverageRoot artifacts/coverage -MinimumPercent 93.08
 
-      - name: 上传 Cobertura 覆盖率产物
-        if: always()
+      - name: Windows 上传 Cobertura 覆盖率产物
+        if: always() && matrix.coverage
         uses: actions/upload-artifact@v4
         with:
           name: coverage-cobertura
           path: artifacts/coverage
           if-no-files-found: error
+
+      - name: macOS/Linux 测试
+        if: '!matrix.coverage'
+        run: dotnet test FlowForge.sln --configuration Release --no-build
