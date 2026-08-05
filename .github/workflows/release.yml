@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Package (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows
+            os: windows-latest
+            rid: win-x64
+          - label: macOS
+            os: macos-14
+            rid: osx-arm64
+          - label: Linux
+            os: ubuntu-latest
+            rid: linux-x64
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: 生成 self-contained 产物
+        shell: pwsh
+        run: .\eng\publish-release.ps1 -Version "${{ github.ref_name }}" -RuntimeIdentifier "${{ matrix.rid }}"
+
+      - name: 上传平台产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: FlowForge-${{ matrix.rid }}
+          path: artifacts/release/FlowForge-${{ github.ref_name }}-${{ matrix.rid }}.*
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 下载全部平台产物
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/release
+          merge-multiple: true
+
+      - name: 发布 Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $assets = Get-ChildItem -LiteralPath artifacts/release -File |
+              ForEach-Object { $_.FullName }
+          if ($assets.Count -ne 3) {
+              throw "期望 3 个平台产物，实际找到 $($assets.Count) 个。"
+          }
+          gh release create $env:RELEASE_TAG @assets --repo "${{ github.repository }}" --title "FlowForge $env:RELEASE_TAG" --generate-notes
