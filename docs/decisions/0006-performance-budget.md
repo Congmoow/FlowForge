@@ -39,4 +39,4 @@ FlowForge 是面向作品集展示的桌面应用。性能目标不能只依靠�
 
 ## Validation
 
-当前仓库已有的真实 Release 性能报告记录了 1000 节点平均 FPS `68.216`、峰值 `WorkingSet64` `290,734,080` bytes；完整原始数据见 [`docs/perf/fps-vs-node-count.html`](../perf/fps-vs-node-count.html)。这些数据证明该次采样的 FPS 和内存预算通过，但不替代启动时间、工作流加载时间、LLM 首次响应和跨平台 GUI 启动的单独验证。
+当前仓库最终 Release 性能报告记录了 commit `7764672` 的 1000 节点平均 FPS `59.931`、峰值 `WorkingSet64` `299,520,000` bytes；100/250/500/1000 四档原始数据见 [`docs/perf/fps-vs-node-count.html`](../perf/fps-vs-node-count.html)。这些数据证明该次真实窗口采样的 FPS 和内存预算通过，但不替代启动时间、工作流加载时间、LLM 首次响应和跨平台 GUI 启动的单独验证。
