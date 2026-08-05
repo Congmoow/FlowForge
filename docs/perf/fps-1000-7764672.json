@@ -1,0 +1,293 @@
+{
+  "nodeCount": 1000,
+  "seed": 20260803,
+  "startedAt": "2026-08-05T14:18:42.3714165+00:00",
+  "warmup": "00:00:05",
+  "duration": "00:00:30",
+  "samples": [
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:18:48.3987332+00:00",
+      "interval": "00:00:01.0077496",
+      "renderedFrames": 62,
+      "framesPerSecond": 61.52321965694653,
+      "workingSetBytes": 294043648
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:18:49.3950679+00:00",
+      "interval": "00:00:00.9988212",
+      "renderedFrames": 62,
+      "framesPerSecond": 62.073171854982654,
+      "workingSetBytes": 293548032
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:18:50.3968446+00:00",
+      "interval": "00:00:01.0017767",
+      "renderedFrames": 64,
+      "framesPerSecond": 63.88649286812121,
+      "workingSetBytes": 283205632
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:18:51.3937789+00:00",
+      "interval": "00:00:00.9969348",
+      "renderedFrames": 63,
+      "framesPerSecond": 63.19370133332691,
+      "workingSetBytes": 291700736
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:18:52.402788+00:00",
+      "interval": "00:00:01.0090076",
+      "renderedFrames": 61,
+      "framesPerSecond": 60.455441564563046,
+      "workingSetBytes": 294498304
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:18:53.3933308+00:00",
+      "interval": "00:00:00.9905431",
+      "renderedFrames": 54,
+      "framesPerSecond": 54.51554808670112,
+      "workingSetBytes": 294567936
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:18:54.396379+00:00",
+      "interval": "00:00:01.0030437",
+      "renderedFrames": 60,
+      "framesPerSecond": 59.817932159884954,
+      "workingSetBytes": 293621760
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:18:55.4037697+00:00",
+      "interval": "00:00:01.0073932",
+      "renderedFrames": 59,
+      "framesPerSecond": 58.56700243757849,
+      "workingSetBytes": 292696064
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:18:56.3893157+00:00",
+      "interval": "00:00:00.9855467",
+      "renderedFrames": 58,
+      "framesPerSecond": 58.85058516252959,
+      "workingSetBytes": 293474304
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:18:57.393801+00:00",
+      "interval": "00:00:01.0044860",
+      "renderedFrames": 60,
+      "framesPerSecond": 59.732042059321884,
+      "workingSetBytes": 293490688
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:18:58.4015145+00:00",
+      "interval": "00:00:01.0077140",
+      "renderedFrames": 60,
+      "framesPerSecond": 59.540703016927424,
+      "workingSetBytes": 290521088
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:18:59.4024781+00:00",
+      "interval": "00:00:01.0009609",
+      "renderedFrames": 62,
+      "framesPerSecond": 61.94048139143098,
+      "workingSetBytes": 288292864
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:00.3984456+00:00",
+      "interval": "00:00:00.9959679",
+      "renderedFrames": 60,
+      "framesPerSecond": 60.242905418939706,
+      "workingSetBytes": 288919552
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:01.3937707+00:00",
+      "interval": "00:00:00.9953278",
+      "renderedFrames": 59,
+      "framesPerSecond": 59.276953783467114,
+      "workingSetBytes": 289554432
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:02.4048021+00:00",
+      "interval": "00:00:01.0110303",
+      "renderedFrames": 61,
+      "framesPerSecond": 60.33449244795136,
+      "workingSetBytes": 289599488
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:03.3962269+00:00",
+      "interval": "00:00:00.9914214",
+      "renderedFrames": 56,
+      "framesPerSecond": 56.4845584329731,
+      "workingSetBytes": 285237248
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:04.3970473+00:00",
+      "interval": "00:00:01.0008175",
+      "renderedFrames": 55,
+      "framesPerSecond": 54.955074226819576,
+      "workingSetBytes": 286511104
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:05.3935601+00:00",
+      "interval": "00:00:00.9965205",
+      "renderedFrames": 57,
+      "framesPerSecond": 57.19902400402199,
+      "workingSetBytes": 285204480
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:06.3957457+00:00",
+      "interval": "00:00:01.0021809",
+      "renderedFrames": 60,
+      "framesPerSecond": 59.86943075845888,
+      "workingSetBytes": 287010816
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:07.4016013+00:00",
+      "interval": "00:00:01.0058584",
+      "renderedFrames": 60,
+      "framesPerSecond": 59.65054325738096,
+      "workingSetBytes": 286990336
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:08.397711+00:00",
+      "interval": "00:00:00.9961092",
+      "renderedFrames": 59,
+      "framesPerSecond": 59.23045384983895,
+      "workingSetBytes": 286990336
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:09.397899+00:00",
+      "interval": "00:00:01.0001901",
+      "renderedFrames": 62,
+      "framesPerSecond": 61.98821604013077,
+      "workingSetBytes": 289439744
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:10.3924753+00:00",
+      "interval": "00:00:00.9945762",
+      "renderedFrames": 64,
+      "framesPerSecond": 64.3490161940332,
+      "workingSetBytes": 288296960
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:11.3978179+00:00",
+      "interval": "00:00:01.0053422",
+      "renderedFrames": 61,
+      "framesPerSecond": 60.67585743441387,
+      "workingSetBytes": 288530432
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:12.3974481+00:00",
+      "interval": "00:00:00.9996253",
+      "renderedFrames": 60,
+      "framesPerSecond": 60.022490427163056,
+      "workingSetBytes": 287686656
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:13.3927071+00:00",
+      "interval": "00:00:00.9952647",
+      "renderedFrames": 62,
+      "framesPerSecond": 62.2949854445757,
+      "workingSetBytes": 288161792
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:14.401397+00:00",
+      "interval": "00:00:01.0086909",
+      "renderedFrames": 61,
+      "framesPerSecond": 60.47442283855243,
+      "workingSetBytes": 298622976
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:15.3946835+00:00",
+      "interval": "00:00:00.9932857",
+      "renderedFrames": 59,
+      "framesPerSecond": 59.3988215072461,
+      "workingSetBytes": 298717184
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:16.4026876+00:00",
+      "interval": "00:00:01.0079995",
+      "renderedFrames": 62,
+      "framesPerSecond": 61.507967017840784,
+      "workingSetBytes": 299274240
+    },
+    {
+      "nodeCount": 1000,
+      "seed": 20260803,
+      "timestamp": "2026-08-05T14:19:17.4047696+00:00",
+      "interval": "00:00:01.0020790",
+      "renderedFrames": 56,
+      "framesPerSecond": 55.883817543327424,
+      "workingSetBytes": 299520000
+    }
+  ],
+  "metadata": {
+    "commit": "7764672",
+    "windowWidth": 1200,
+    "windowHeight": 760,
+    "cpu": "12th Gen Intel Core i5-12450H",
+    "gpu": "Intel(R) UHD Graphics; GameViewer Virtual Display Adapter",
+    "operatingSystem": "Microsoft Windows 10.0.26200",
+    "dotnetSdk": "8.0.302",
+    "dotnetRuntime": ".NET 8.0.7",
+    "runtimeIdentifier": "win-x64",
+    "avaloniaVersion": "11.2.3.0"
+  },
+  "averageFramesPerSecond": 59.93117840731501,
+  "peakWorkingSetBytes": 299520000
+}

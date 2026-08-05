@@ -24,7 +24,7 @@
 <body>
 <main>
   <h1>FlowForge：节点数与 FPS</h1>
-  <p class="note">以下数据来自 Release 配置下的真实 Avalonia 窗口，未在 xUnit 中模拟帧率。被测代码提交为 <code>b0005bf</code>，四档场景使用相同窗口尺寸、seed、预热和采样口径；每个 JSON 还包含提交、窗口、操作系统、GPU、SDK、runtime 和 Avalonia 元数据。</p>
+  <p class="note">以下数据来自 Release 配置下的真实 Avalonia 窗口，未在 xUnit 中模拟帧率。被测代码提交为 <code>7764672</code>，四档场景使用相同窗口尺寸、seed、预热和采样口径；每个 JSON 还包含提交、窗口、操作系统、GPU、SDK、runtime 和 Avalonia 元数据。</p>
 
   <h2>FPS 曲线</h2>
   <div class="chart"><canvas id="fpsChart" aria-label="节点数与平均 FPS 曲线" role="img"></canvas></div>
@@ -36,10 +36,10 @@
       <tr><th>节点数</th><th>样本数</th><th>平均 FPS</th><th>峰值 WorkingSet64（bytes）</th><th>峰值（MiB）</th><th>阈值</th><th>原始 JSON</th></tr>
     </thead>
     <tbody>
-      <tr><td>100</td><td>30</td><td>67.135</td><td>273076224</td><td>260.43</td><td class="pass">FPS / 内存通过</td><td><a href="fps-100-b0005bf.json">fps-100-b0005bf.json</a></td></tr>
-      <tr><td>250</td><td>30</td><td>68.102</td><td>277299200</td><td>264.45</td><td class="pass">FPS / 内存通过</td><td><a href="fps-250-b0005bf.json">fps-250-b0005bf.json</a></td></tr>
-      <tr><td>500</td><td>30</td><td>68.314</td><td>281767936</td><td>268.71</td><td class="pass">FPS / 内存通过</td><td><a href="fps-500-b0005bf.json">fps-500-b0005bf.json</a></td></tr>
-      <tr><td>1000</td><td>30</td><td>68.216</td><td>290734080</td><td>277.27</td><td class="pass">FPS / 内存通过</td><td><a href="fps-1000-b0005bf.json">fps-1000-b0005bf.json</a></td></tr>
+      <tr><td>100</td><td>30</td><td>57.968</td><td>283795456</td><td>270.65</td><td class="pass">FPS / 内存通过</td><td><a href="fps-100-7764672.json">fps-100-7764672.json</a></td></tr>
+      <tr><td>250</td><td>30</td><td>59.904</td><td>294084608</td><td>280.46</td><td class="pass">FPS / 内存通过</td><td><a href="fps-250-7764672.json">fps-250-7764672.json</a></td></tr>
+      <tr><td>500</td><td>30</td><td>56.667</td><td>291090432</td><td>277.61</td><td class="pass">FPS / 内存通过</td><td><a href="fps-500-7764672.json">fps-500-7764672.json</a></td></tr>
+      <tr><td>1000</td><td>30</td><td>59.931</td><td>299520000</td><td>285.64</td><td class="pass">FPS / 内存通过</td><td><a href="fps-1000-7764672.json">fps-1000-7764672.json</a></td></tr>
     </tbody>
   </table>
 
@@ -53,24 +53,25 @@
         <li>每档预热 5 秒，随后自动平移 30 秒。</li>
         <li>每秒一个样本；FPS 来自实际 <code>NodeCanvas.Render</code> 次数。</li>
         <li>内存为进程 <code>Process.WorkingSet64</code> 峰值；表中 MiB 使用 1 MiB = 1,048,576 bytes。</li>
+        <li>本次门禁为平均 FPS ≥ 55 且峰值 WorkingSet64 &lt; 300,000,000 bytes。</li>
         <li>JSON 的 <code>metadata</code> 字段记录提交、窗口尺寸、CPU/GPU、OS、.NET SDK/runtime、RID 和 Avalonia 版本。</li>
       </ul>
     </section>
     <section>
       <h2>运行环境</h2>
       <ul>
-        <li>CPU：12th Gen Intel Core i5-12450H，8 physical / 12 logical。</li>
+        <li>CPU：12th Gen Intel Core i5-12450H。</li>
         <li>GPU：Intel(R) UHD Graphics；同时检测到 GameViewer Virtual Display Adapter。</li>
-        <li>OS：Microsoft Windows 11 家庭版中文版，build 26200。</li>
-        <li>.NET SDK：8.0.302；运行时：8.0.7；RID：win-x64。</li>
-        <li>Avalonia：11.2.3。</li>
+        <li>OS：Microsoft Windows 10.0.26200。</li>
+        <li>.NET SDK：8.0.302；运行时：.NET 8.0.7；RID：win-x64。</li>
+        <li>Avalonia：11.2.3.0。</li>
       </ul>
     </section>
   </div>
 
   <h2>运行入口与截图</h2>
   <p><code>dotnet run --project src/FlowForge.App/FlowForge.App.csproj --configuration Release --no-build -- --perf --nodes &lt;100|250|500|1000&gt; --commit &lt;git-commit&gt; --output artifacts/perf/fps-&lt;N&gt;-&lt;git-commit&gt;.json</code></p>
-  <p>1000 节点真实窗口截图：<a href="flowforge-1000-b0005bf.png">flowforge-1000-b0005bf.png</a>。截图命名中的 hash 对应被测代码提交。</p>
+  <p>1000 节点真实窗口截图：<a href="flowforge-1000-7764672.png">flowforge-1000-7764672.png</a>。截图命名中的 hash 对应被测代码提交。</p>
 
   <h2>BenchmarkDotNet 摘要</h2>
   <p class="note">以下是本仓库 BenchmarkDotNet 0.15.8 Dry job 的实际报告摘要；它们是算法/调度基准，不是画布 FPS 测量。</p>
@@ -89,10 +90,10 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
 <script>
   const measurements = [
-    { nodes: 100, fps: 67.135 },
-    { nodes: 250, fps: 68.102 },
-    { nodes: 500, fps: 68.314 },
-    { nodes: 1000, fps: 68.216 }
+    { nodes: 100, fps: 57.968 },
+    { nodes: 250, fps: 59.904 },
+    { nodes: 500, fps: 56.667 },
+    { nodes: 1000, fps: 59.931 }
   ];
   if (typeof Chart !== "undefined") {
     new Chart(document.getElementById("fpsChart"), {

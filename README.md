@@ -65,14 +65,14 @@ dotnet test FlowForge.sln --configuration Release
 
 ## 性能证据
 
-Release 实窗测量使用固定窗口 1200 × 760、seed `20260803`、每档 5 秒预热、随后 30 秒自动平移和每秒一个实际 Render 样本。下表是仓库当前已归档的真实窗口基线，原始 JSON 与环境信息见[性能报告](docs/perf/fps-vs-node-count.html)：
+Release 实窗测量使用固定窗口 1200 × 760、seed `20260803`、每档 5 秒预热、随后 30 秒自动平移和每秒一个实际 Render 样本。下表是最终 commit `7764672` 的真实窗口证据，原始 JSON 与环境信息见[性能报告](docs/perf/fps-vs-node-count.html)：
 
 | 节点数 | 平均 FPS | 峰值 WorkingSet64 |
 |--------|---------:|------------------:|
-| 100 | 67.135 | 273,076,224 bytes |
-| 250 | 68.102 | 277,299,200 bytes |
-| 500 | 68.314 | 281,767,936 bytes |
-| 1000 | 68.216 | 290,734,080 bytes |
+| 100 | 57.968 | 283,795,456 bytes |
+| 250 | 59.904 | 294,084,608 bytes |
+| 500 | 56.667 | 291,090,432 bytes |
+| 1000 | 59.931 | 299,520,000 bytes |
 
 性能场景入口：
 
@@ -80,7 +80,7 @@ Release 实窗测量使用固定窗口 1200 × 760、seed `20260803`、每档 5 
 dotnet run --project src/FlowForge.App/FlowForge.App.csproj --configuration Release -- --perf --nodes 1000 --output artifacts/perf/fps-1000.json
 ```
 
-上表记录的是已有性能归档；最终 Stage 6 性能复测会在最终应用 commit 上生成新的带 commit hash 的证据文件。启动时间、工作流加载时间、LLM 首次响应延迟和跨平台 GUI 启动不在本 README 中冒充已验证指标。
+上表记录的是最终 Stage 6 性能复测；四档原始 JSON 和 1000 节点截图均带有被测 commit hash。启动时间、工作流加载时间、LLM 首次响应延迟和跨平台 GUI 启动不在本 README 中冒充已验证指标。
 
 ## 关键技术决策
 
