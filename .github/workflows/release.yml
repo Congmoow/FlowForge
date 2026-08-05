@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -43,7 +44,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: FlowForge-${{ matrix.rid }}
-          path: artifacts/release/FlowForge-${{ github.ref_name }}-${{ matrix.rid }}.*
+          path: artifacts/release/FlowForge-*-${{ matrix.rid }}.*
           if-no-files-found: error
 
   publish:
