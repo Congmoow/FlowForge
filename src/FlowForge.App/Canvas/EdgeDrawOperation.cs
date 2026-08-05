@@ -15,6 +15,7 @@ public sealed class EdgeDrawOperation : ICustomDrawOperation
     private readonly ImmutablePen pen;
     private readonly (Point First, Point Second) controlPoints;
     private readonly ImmutableArray<Point> renderPoints;
+    private PathGeometry? geometry;
     private bool disposed;
 
     /// <summary>初始化连线绘制操作。</summary>
@@ -23,7 +24,6 @@ public sealed class EdgeDrawOperation : ICustomDrawOperation
     {
         Snapshot = snapshot;
         controlPoints = BezierEdgeShape.CalculateControlPoints(snapshot.StartPoint, snapshot.EndPoint);
-        Geometry = BezierEdgeShape.CreateGeometry(snapshot.StartPoint, snapshot.EndPoint);
         Bounds = BezierBounds.GetBounds(
             snapshot.StartPoint,
             snapshot.EndPoint,
@@ -41,8 +41,10 @@ public sealed class EdgeDrawOperation : ICustomDrawOperation
     /// <summary>不可变连线绘制快照。</summary>
     public EdgeDrawSnapshot Snapshot { get; }
 
-    /// <summary>缓存的贝塞尔几何。</summary>
-    public PathGeometry Geometry { get; }
+    /// <summary>按需创建并缓存的贝塞尔几何。</summary>
+    public PathGeometry Geometry => geometry ??= BezierEdgeShape.CreateGeometry(
+        Snapshot.StartPoint,
+        Snapshot.EndPoint);
 
     /// <summary>缓存的连线 world bounds。</summary>
     public Rect Bounds { get; }
