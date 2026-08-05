@@ -49,6 +49,23 @@ public sealed class DirtyRegionTests
     }
 
     [Fact]
+    public void EdgeDrawOperation_Geometry_IsCreatedOnlyWhenRequested()
+    {
+        using var operation = new EdgeDrawOperation(new EdgeDrawSnapshot(
+            Guid.NewGuid(),
+            new Point(-80, 32),
+            new Point(80, 32),
+            2));
+        var geometryField = typeof(EdgeDrawOperation)
+            .GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
+            .Single(field => field.FieldType == typeof(PathGeometry));
+
+        geometryField.GetValue(operation).Should().BeNull();
+        operation.Geometry.Should().NotBeNull();
+        geometryField.GetValue(operation).Should().NotBeNull();
+    }
+
+    [Fact]
     public void DrawOperations_Dispose_IsIdempotentAndMarksOperationDisposed()
     {
         using var node = new NodeDrawOperation(CreateNodeSnapshot(new Rect(0, 0, 220, 96)));
